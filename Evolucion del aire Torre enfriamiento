@@ -1,0 +1,169 @@
+# Método de Mickley
+# Este código fue desarrollado en el marco de actividades docentes relacionadas con la enseñanza del Método de Mickley
+# aplicado a torres de enfriamiento, en la asignatura de Operaciones Unitarias 3, FICA, UNSL
+# Fecha de creación: 12/4/2025
+# Lenguaje de programación: Python
+# Aplicación: Simulación gráfica del método de Mickley, incluye la curva de equilibrio,
+# línea de operación, evolución del aire, cálculo de entalpías y segmentos auxiliares por iteración.
+# Este notebook puede ser utilizado para simular distintos casos ajustando los datos de entrada.
+# Por defecto las unidades están en sistema inglés, masa en lb, tiempo en h, temperatura en °F, longitud en ft, energía en Btu
+# Si se desea trabajar en el Sistema internacional, masa en kg, tiempo en s, temperatura en °C, longitud en m, energía en J
+# habilitar los datos de equilibrio en SI borrando # y deshabilitar los datos del Sistema Inglés escribiendo #
+# ==================== LIMPIEZA DEL ENTORNO ====================
+from IPython import get_ipython
+get_ipython().magic('reset -f')
+ 
+# ==================== IMPORTACIÓN DE LIBRERÍAS ====================
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+ 
+ 
+ 
+ 
+# ==================== DATOS DE ENTRADA ====================
+# Datos en Sistema Internacional
+#teq = np.array([0, 10, 20, 30, 40, 50, 60])  # °C
+#Heq_data = np.array([9479, 29360, 57570, 100030, 166790, 275580, 461500])  # J/kg aire seco
+#Cp = 4186     # calor específico del agua, J/(kg °C)
+ 
+# Datos en Sistema Ingles
+teq = np.array([32, 40, 60, 80, 100, 120, 140]) # °F
+Heq_data = np.array([4.074, 7.545, 18.780, 36.020, 64.090, 112.0, 198.0]) # BTU/lb aire seco
+Cp = 1.0 	# calor específico del agua, Btu/(lb °F)
+#Datos del Problema 8
+L = 2200      	# flujo de agua, masa de agua/ (tiempo área)
+G = 2000     	# flujo de aire, masa de aire húmedo/(tiempo area)
+tini = 85     	# temperatura de salida del agua
+tfin = 105    	# temperatura de entrada del agua
+tG1 = 90      	# bulbo seco del aire a la entrada
+tw1 = 76      	# bulbo húmedo del aire a la entrada
+Y1 = 16/1000	# humedad absoluta del aire a la entrada, masa vapor de agua/(masa de aire seco)
+P= 1          	# presion de operacion
+KYa = 850  	# coef. volumétrico de transferencia de materia, en unidades:
+              	#(masa de vapor / (tiempo . área de transferencia . moles de vapor/mol aire seco)) (area de transferencia/ unidad de volumen de relleno)
+ 
+# ==================== CÁLCULOS BASE ====================
+y1 = Y1 / (1 + Y1)  #fracción de vapor de agua del aire a la entrada, masa de vapor de agua/ masa de aire húmedo
+Gs = G * (1 - y1)   #flujo de aire seco, masa de aire seco/ (tiempo área)
+Hini = (0.24 + 0.45 * Y1) * (tG1 - 32) + 1075.8 * Y1 #Entalpía del aire a la entrada, energia/ masa de aire seco
+Hfin = (L * Cp / Gs) * (tfin - tini) + Hini #Entalpía del aire a la salida, energia/ masa de aire seco
+ 
+ 
+ 
+ 
+ 
+ 
+# ==================== Polinomio H*(t) ====================
+H_star_func = interp1d(teq, Heq_data, kind='cubic', fill_value='extrapolate')
+ 
+def calcular_Y(H, t):
+	return (H - 0.24 * (t - 32)) / (0.45 * (t - 32) + 1075.8)
+ 
+# ==================== MÉTODO DE MICKLEY ======================
+#Se asume que la resistencia controlante es la fase gas, 1/hLa → 0 
+#entonces –(1/kYa)/(1/hLa)→ inf, líneas verticales en el diagrama de equilibrio
+DH = (Hfin - Hini) / 20
+t_air = [tG1]
+H_air = [Hini]
+Y_air = [calcular_Y(Hini, tG1)]
+t_op = [tini]
+H_op = [Hini]
+H_star = [H_star_func(tini)]
+segmentos = []
+ 
+while True:
+	H_next = H_air[-1] + DH
+	t_op_next = (H_next - Hini) * (tfin - tini) / (Hfin - Hini) + tini
+	H_star_next = H_star_func(t_op_next)
+ 
+	t_next = DH * ((t_op[-1] - t_air[-1]) / (H_star[-1] - H_air[-1])) + t_air[-1]
+	H_star_tnext= H_star_func(t_next) #entalpia a la t del aire
+	Y_next = calcular_Y(H_next, t_next) #humedad absoluta del aire
+ 
+	#condicion para detener el calculo
+	if H_next - H_star_tnext > 0 or H_next - Hfin > DH:
+   	break
+ 
+	H_air.append(H_next)
+	t_air.append(t_next)
+	Y_air.append(Y_next)
+	t_op.append(t_op_next)
+	H_op.append(H_next)
+    H_star.append(H_star_next)
+ 
+    segmentos.append(((t_next, H_next), (t_op_next, H_next)))
+    segmentos.append(((t_op_next, H_next), (t_op_next, H_star_next)))
+    segmentos.append(((t_op_next, H_star_next), (t_next, H_next)))
+ 
+ 
+# ==================== CÁLCULO DE NtoG ====================
+n_pasos = 20
+dt = (tfin - tini) / n_pasos
+t_water = [tini + i * dt for i in range(n_pasos + 1)]
+H_op_vals = [Hini + (Hfin - Hini) * (t - tini) / (tfin - tini) for t in t_water]
+H_star_vals = [H_star_func(t) for t in t_water]
+ 
+f_T = []
+for i in range(len(t_water)):
+	delta = H_star_vals[i] - H_op_vals[i]
+	f_T.append(1 / delta if abs(delta) > 1e-6 else float('inf'))
+ 
+dHdT = (Hfin - Hini) / (tfin - tini)
+NtoG = 0
+for i in range(1, len(t_water)):
+	NtoG += 0.5 * dt * (f_T[i] + f_T[i - 1])
+NtoG *= dHdT
+ 
+# ======== CÁLCULO DE HtoG, Z y agua de reposición ====================
+ 
+HtoG = Gs / KYa
+Z_total = HtoG * NtoG
+Lrep = Gs * (Y_air[-1] - Y1)
+ 
+# ==================== RESULTADOS ====================
+#print("\n--- Flujo másico de aire seco ---")
+#print(f"Gs = {Gs:.2f}")
+print("\n--- Línea de operación ---")
+print(f"cabeza de la torre: (t = {tfin:.2f}, H = {Hfin:.2f} )")
+print(f"base de la torre: (t = {tini:.2f}, H = {Hini:.2f} )")
+print(f"\nHumedad absoluta del aire a la salida: Y = {Y_air[-1]:.5f} ")
+print(f"Agua evaporada (reposición): Lrep = {Lrep:.2f} ")
+print(f"Número de unidades de transferencia: NtoG= {NtoG:.2f}")
+print(f"Altura de unidad de transferencia: HtoG= {HtoG:.2f}")
+print(f"Altura total del relleno: Z = {Z_total:.2f} ")
+ 
+#print("\n--- Curva de Mickley: evolución del aire ---")
+#print("i      	t_air            	H_air          	Y_air  ")
+#for i in range(len(H_air)):
+	#print(f"{i:<3}   {t_air[i]:>10.2f} 	{H_air[i]:>15.2f} 	{Y_air[i]:>15.5f}")
+ 
+# ==================== GRÁFICO FINAL ====================
+plt.figure(figsize=(8,6))
+T_plot = np.linspace(min(teq), max(teq), 200)
+plt.plot(T_plot, H_star_func(T_plot), label='Curva de equilibrio H*(t)', linewidth=2)
+plt.plot([tini, tfin], [Hini, Hfin], 'r-', label='Línea de operación Hop(t)', linewidth=2)
+plt.plot(t_air, H_air, 'ko-', label='Curva de evolución del aire H(t)', markersize=4, linewidth=1)
+ 
+A = (tG1, Hini)
+B = (tini, Hini)
+C = (tini, H_star_func(tini))
+plt.plot([A[0], B[0]], [A[1], B[1]], 'gray', linestyle='--')
+plt.plot([B[0], C[0]], [B[1], C[1]], 'gray', linestyle='--')
+plt.plot([A[0], C[0]], [A[1], C[1]], 'gray', linestyle='--')
+ 
+for seg in segmentos:
+	(x1, y1), (x2, y2) = seg
+	plt.plot([x1, x2], [y1, y2], 'gray', linewidth=1, linestyle='--')
+ 
+plt.xlabel('Temperatura del agua')
+plt.ylabel('Entalpía del aire húmedo')
+plt.title('Método de Mickley - Torre de Enfriamiento')
+plt.grid(True)
+plt.legend()
+plt.xlim(tini - 20, tfin + 20)
+plt.ylim(Hini - 20, Hfin + 30)
+plt.tight_layout()
+plt.show()
+ 
+
