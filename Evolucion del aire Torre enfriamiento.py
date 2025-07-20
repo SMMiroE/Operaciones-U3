@@ -26,7 +26,7 @@ opcion_unidades = st.radio(
 if opcion_unidades == 'Sistema Inglés':
     teq = np.array([32, 40, 60, 80, 100, 120, 140]) # °F
     Heq_data = np.array([4.074, 7.545, 18.780, 36.020, 64.090, 112.0, 198.0]) # BTU/lb aire seco
-    Cp_default = 1.0 	# calor específico del agua, Btu/(lb °F)
+    Cp_default = 1.0    # calor específico del agua, Btu/(lb °F)
     temp_unit = "°F"
     enthalpy_unit = "BTU/lb aire seco"
     flow_unit = "lb/(tiempo área)"
@@ -36,9 +36,9 @@ if opcion_unidades == 'Sistema Inglés':
     h_cp_air_dry = 0.24
     h_cp_vapor = 0.45
 else: # Sistema Internacional
-    teq = np.array([0, 10, 20, 30, 40, 50, 60])  # °C
-    Heq_data = np.array([9479, 29360, 57570, 100030, 166790, 275580, 461500])  # J/kg aire seco
-    Cp_default = 4186     # calor específico del agua, J/(kg °C)
+    teq = np.array([0, 10, 20, 30, 40, 50, 60])  # °C
+    Heq_data = np.array([9479, 29360, 57570, 100030, 166790, 275580, 461500])  # J/kg aire seco
+    Cp_default = 4186       # calor específico del agua, J/(kg °C)
     temp_unit = "°C"
     enthalpy_unit = "J/kg aire seco"
     flow_unit = "kg/(tiempo área)"
@@ -72,10 +72,11 @@ KYa = st.sidebar.number_input('Coef. volumétrico de transferencia de materia (K
 Cp = st.sidebar.number_input(f'Calor específico del agua (Cp, {Cp_default} por defecto)', value=Cp_default, format="%.2f")
 
 # Botón para ejecutar el cálculo (opcional, Streamlit recalcula en cada cambio de input)
-if st.sidebar.button('Calcular'):
-    st.write("Calculando...")
-else:
-    st.write("Ajusta los parámetros y observa los resultados.")
+# He comentado esta sección ya que Streamlit recalcula automáticamente con los cambios de input
+# if st.sidebar.button('Calcular'):
+#     st.write("Calculando...")
+# else:
+#     st.write("Ajusta los parámetros y observa los resultados.")
 
 # ==================== CÁLCULOS BASE ====================
 try:
@@ -95,9 +96,10 @@ try:
     # Validaciones iniciales
     if tini >= tfin:
         st.warning("Advertencia: La temperatura de salida del agua (tini) debe ser menor que la de entrada (tfin) para un enfriamiento.")
-        if Hfin <= Hini:
-            st.warning("Advertencia: La entalpía final del aire no es mayor que la inicial. Posible problema en los datos de entrada o no hay enfriamiento.")
-            st.stop()
+        # No detendremos la ejecución aquí, solo mostraremos una advertencia.
+        # if Hfin <= Hini: # Esta condición puede ser redundante si tini >= tfin y L, Cp, Gs son positivos
+        #     st.warning("Advertencia: La entalpía final del aire no es mayor que la inicial. Posible problema en los datos de entrada o no hay enfriamiento.")
+        #     st.stop()
 
 
     # ==================== Polinomio H*(t) ====================
@@ -132,9 +134,10 @@ try:
         H_next = H_air[-1] + DH
         
         # Si H_next ya supera Hfin, terminar y ajustar el último punto si es necesario
-        if H_next > Hfin:
+        if H_next >= Hfin: # Usar >= para incluir el punto final
             H_next = Hfin # Asegurar que el último punto no exceda Hfin
-            # Recalcular t_op_next y otros para este Hfin
+            
+            # Recalcular t_op_next para este Hfin
             t_op_next = (H_next - Hini) * (tfin - tini) / (Hfin - Hini) + tini
             H_star_next = H_star_func(t_op_next)
             
@@ -181,8 +184,35 @@ try:
 
         # Condición de detención original (se puede refinar)
         # Se ha ajustado la condición de H_next - Hfin para evitar un bucle extra si ya pasó el Hfin
-        if H_next > Hfin or H_next - H_star_tnext > 0: # La segunda condición indica que la línea de operación cruza el equilibrio
-            break # Si H_next ya superó Hfin, terminamos. Si la fuerza impulsora se invierte, también.
+        if H_next > Hfin or (H_next - H_star_tnext) > 0: # La segunda condición indica que la línea de operación cruza el equilibrio
+            # Si H_next ya superó Hfin, o si la fuerza impulsora se invierte, terminamos.
+            # Aseguramos que el último punto sea Hfin si se superó.
+            if H_next > Hfin:
+                H_next = Hfin
+                t_op_next = (H_next - Hini) * (tfin - tini) / (Hfin - Hini) + tini
+                H_star_next = H_star_func(t_op_next)
+                
+                if len(H_air) > 1 and len(t_air) > 1 and len(t_op) > 1 and len(H_star) > 1:
+                    t_prev = t_air[-1]
+                    H_prev = H_air[-1]
+                    t_op_prev = t_op[-1]
+                    H_star_prev = H_star[-1]
+                    DH_last_step = H_next - H_prev
+                    if abs(H_star_prev - H_prev) < 1e-6:
+                        t_next = t_prev
+                    else:
+                        t_next = DH_last_step * ((t_op_prev - t_prev) / (H_star_prev - H_prev)) + t_prev
+                else:
+                    t_next = tG1 # Fallback
+                Y_next = calcular_Y(H_next, t_next, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor)
+
+                H_air.append(H_next)
+                t_air.append(t_next)
+                Y_air.append(Y_next)
+                t_op.append(t_op_next)
+                H_op.append(H_next)
+                H_star.append(H_star_next)
+            break
 
         H_air.append(H_next)
         t_air.append(t_next)
@@ -191,6 +221,7 @@ try:
         H_op.append(H_next)
         H_star.append(H_star_next)
 
+        # Segmentos para el gráfico
         segmentos.append(((t_next, H_next), (t_op_next, H_next)))
         segmentos.append(((t_op_next, H_next), (t_op_next, H_star_next)))
         segmentos.append(((t_op_next, H_star_next), (t_next, H_next)))
@@ -201,39 +232,39 @@ try:
         st.stop()
         
     # Asegurarse de que el último punto de la línea de operación y la curva de evolución del aire coincida con Hfin
-    if H_air[-1] < Hfin:
-        H_air.append(Hfin)
-        t_op_final = tfin # El último t_op_next antes del break ya era tfin si el H_next fue Hfin
-        t_air_final = (Hfin - Hini) * (tfin - tini) / (Hfin - Hini) + tini # Esto no está bien, hay que calcular el ultimo t_air de la evolución
-        # Calcular el último t_air de la evolución de forma más precisa
-        if len(H_air) > 1 and len(t_air) > 1 and len(t_op) > 1 and len(H_star) > 1:
-            H_prev_evo = H_air[-2]
-            t_prev_evo = t_air[-2]
-            t_op_prev_evo = t_op[-2]
-            H_star_prev_evo = H_star[-2]
-            DH_last = Hfin - H_prev_evo
-            if abs(H_star_prev_evo - H_prev_evo) < 1e-6:
-                t_air_final = t_prev_evo
-            else:
-                t_air_final = DH_last * ((t_op_prev_evo - t_prev_evo) / (H_star_prev_evo - H_prev_evo)) + t_prev_evo
-        else: # Si solo hay un punto (caso de error previo)
-            t_air_final = tG1 # Fallback, no debería ocurrir si el bucle funcionó bien
-        
-        t_air.append(t_air_final)
-        Y_air.append(calcular_Y(Hfin, t_air_final, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor))
-        t_op.append(t_op_final)
-        H_op.append(Hfin)
-        H_star.append(H_star_func(t_op_final)) # Asegurar que H_star_func se evalúe en t_op_final
-        
-        # Añadir el último segmento si aplica
-        if len(t_air) >= 2: # Asegurarse de que haya al menos dos puntos para el último segmento
-            last_t_air = t_air[-1]
-            last_H_air = H_air[-1]
-            last_t_op = t_op[-1]
-            last_H_star = H_star_func(last_t_op) # Recalcular para asegurar consistencia
-            segmentos.append(((last_t_air, last_H_air), (last_t_op, last_H_air)))
-            segmentos.append(((last_t_op, last_H_air), (last_t_op, last_H_star)))
-            segmentos.append(((last_t_op, last_H_star), (last_t_air, last_H_air)))
+    # Este bloque ya debería estar cubierto por la lógica del bucle 'while True'
+    # si la condición H_next >= Hfin se maneja correctamente dentro del bucle.
+    # Lo dejo comentado para evitar duplicidad o lógica confusa.
+    # if H_air[-1] < Hfin:
+    #     H_air.append(Hfin)
+    #     t_op_final = tfin
+    #     if len(H_air) > 1 and len(t_air) > 1 and len(t_op) > 1 and len(H_star) > 1:
+    #         H_prev_evo = H_air[-2]
+    #         t_prev_evo = t_air[-2]
+    #         t_op_prev_evo = t_op[-2]
+    #         H_star_prev_evo = H_star[-2]
+    #         DH_last = Hfin - H_prev_evo
+    #         if abs(H_star_prev_evo - H_prev_evo) < 1e-6:
+    #             t_air_final = t_prev_evo
+    #         else:
+    #             t_air_final = DH_last * ((t_op_prev_evo - t_prev_evo) / (H_star_prev_evo - H_prev_evo)) + t_prev_evo
+    #     else:
+    #         t_air_final = tG1
+            
+    #     t_air.append(t_air_final)
+    #     Y_air.append(calcular_Y(Hfin, t_air_final, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor))
+    #     t_op.append(t_op_final)
+    #     H_op.append(Hfin)
+    #     H_star.append(H_star_func(t_op_final))
+            
+    #     if len(t_air) >= 2:
+    #         last_t_air = t_air[-1]
+    #         last_H_air = H_air[-1]
+    #         last_t_op = t_op[-1]
+    #         last_H_star = H_star_func(last_t_op)
+    #         segmentos.append(((last_t_air, last_H_air), (last_t_op, last_H_air)))
+    #         segmentos.append(((last_t_op, last_H_air), (last_t_op, last_H_star)))
+    #         segmentos.append(((last_t_op, last_H_star), (last_t_air, last_H_air)))
 
     # ==================== CÁLCULO DE NtoG ====================
     n_pasos_integracion = 100 # Aumentar pasos para mejor precisión en la integración
