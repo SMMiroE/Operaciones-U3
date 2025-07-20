@@ -204,14 +204,15 @@ elif Y1_source_option == 'Calcular Y1 a partir de Humedad Relativa':
         st.sidebar.error(f"Error en el cálculo de Y1: {e}. Usando valor por defecto.")
         Y1 = 0.016 # Valor de respaldo en caso de error
 
-# La presión P y KYa y Cp se muestran aquí, fuera de los bloques condicionales de Y1
+# La presión P y KYa se muestran aquí, fuera de los bloques condicionales de Y1
 # para asegurar que siempre estén presentes y no se dupliquen si se usan en múltiples ramas.
 # Si P ya se definió en un bloque anterior, Streamlit lo manejará correctamente.
 if Y1_source_option != 'Calcular Y1 a partir de Bulbo Húmedo' and Y1_source_option != 'Calcular Y1 a partir de Humedad Relativa':
     P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f") # Solo mostrar si no se calculó Y1
 
 KYa = st.sidebar.number_input(f'Coef. volumétrico de transferencia de materia (KYa, {kya_unit})', value=850.0, format="%.2f")
-Cp = st.sidebar.number_input(f'Calor específico del agua (Cp, {cp_unit})', value=Cp_default, format="%.2f")
+# Se elimina la entrada de Cp, ya que se usará Cp_default directamente
+# Cp = st.sidebar.number_input(f'Calor específico del agua (Cp, {cp_unit})', value=Cp_default, format="%.2f")
 
 # ==================== CÁLCULOS BASE ====================
 try:
@@ -226,7 +227,8 @@ try:
         st.error("Error: El flujo de aire seco (Gs) no puede ser cero. Revise el flujo de aire (G) y la humedad (Y1).")
         st.stop()
         
-    Hfin = (L * Cp / Gs) * (tfin - tini) + Hini
+    # Se utiliza Cp_default directamente en el cálculo
+    Hfin = (L * Cp_default / Gs) * (tfin - tini) + Hini
 
     # Validaciones iniciales
     if tini >= tfin:
