@@ -38,6 +38,7 @@ if opcion_unidades == 'Sistema Inglés':
     kya_unit = "lb/(h ft² DY)" # Especificación de unidades de KYa
     cp_unit = "BTU/(lb agua °F)" # Especificación de unidades de Cp
     Y_unit = "lb agua/lb aire seco" # Especificación de unidades de Y
+    psychrometric_constant = 0.000367 # psi^-1 (para presión en psi)
 else: # Sistema Internacional
     teq = np.array([0, 10, 20, 30, 40, 50, 60])  # °C
     Heq_data = np.array([9479, 29360, 57570, 100030, 166790, 275580, 461500])  # J/kg aire seco
@@ -53,6 +54,7 @@ else: # Sistema Internacional
     kya_unit = "kg/(s m² DY)" # Especificación de unidades de KYa
     cp_unit = "J/(kg agua °C)" # Especificación de unidades de Cp
     Y_unit = "kg agua/kg aire seco" # Especificación de unidades de Y
+    psychrometric_constant = 0.000662 # kPa^-1 (para presión en kPa)
 
 # Función para calcular entalpía del aire húmedo (adaptada para ambos sistemas)
 def calcular_entalpia_aire(t, Y, temp_ref, latent_ref, cp_air_dry, cp_vapor):
@@ -62,93 +64,77 @@ def calcular_entalpia_aire(t, Y, temp_ref, latent_ref, cp_air_dry, cp_vapor):
 def calcular_Y(H, t, temp_ref, latent_ref, cp_air_dry, cp_vapor):
     return (H - cp_air_dry * (t - temp_ref)) / (cp_vapor * (t - temp_ref) + latent_ref)
 
+# Nueva función para calcular la presión de vapor de saturación (más precisa)
+def get_saturation_vapor_pressure(temperature, units_system):
+    """
+    Calcula la presión de vapor de saturación del agua.
+    Utiliza la fórmula de Magnus para °C y la convierte a °F/psi si es necesario.
+    """
+    if units_system == 'Sistema Internacional': # Temperatura en °C, P_ws en kPa
+        # Fórmula de Magnus para P_ws en kPa, T en °C
+        return 0.61094 * np.exp((17.625 * temperature) / (temperature + 243.04))
+    else: # Temperatura en °F, P_ws en psi
+        # Convertir °F a °C para usar la fórmula de Magnus
+        temp_c = (temperature - 32) * 5/9
+        P_ws_kPa = 0.61094 * np.exp((17.625 * temp_c) / (temp_c + 243.04))
+        # Convertir kPa a psi (1 psi = 6.89476 kPa)
+        return P_ws_kPa / 6.89476
+
 # Función para calcular Y1 a partir de bulbo seco y bulbo húmedo
-def calculate_Y_from_wet_bulb(t_dry_bulb, t_wet_bulb, total_pressure_atm, units_system):
+def calculate_Y_from_wet_bulb(t_dry_bulb, t_wet_bulb, total_pressure_atm, units_system, psych_const):
     """
     Calcula la humedad absoluta (Y) a partir de la temperatura de bulbo seco,
     temperatura de bulbo húmedo y presión total, utilizando correlaciones psicrométricas.
     """
     if units_system == 'Sistema Internacional':
-        # Convertir presión total de atm a kPa
-        P_kPa = total_pressure_atm * 101.325
-
-        # Presión de vapor de saturación a la temperatura de bulbo húmedo (en kPa)
-        # Utilizando la fórmula de Magnus (aproximación para t en °C)
-        P_ws_tw_kPa = 0.6108 * np.exp((17.27 * t_wet_bulb) / (t_wet_bulb + 237.3))
-
-        # Constante psicrométrica (aproximación para presión estándar, en kPa^-1)
-        psychrometric_constant = 0.000662 # kPa^-1
-
-        # Presión de vapor (Pv)
-        Pv_kPa = P_ws_tw_kPa - psychrometric_constant * P_kPa * (t_dry_bulb - t_wet_bulb)
-
-        # Asegurar que Pv no sea negativo
-        if Pv_kPa < 0:
-            Pv_kPa = 0
-
-        # Humedad absoluta (Y)
-        if (P_kPa - Pv_kPa) <= 0:
-            return float('inf') # Retornar infinito para indicar un estado de saturación/error
-        Y = 0.62198 * (Pv_kPa / (P_kPa - Pv_kPa))
-        return Y
+        P_total = total_pressure_atm * 101.325 # Convertir atm a kPa
     else: # Sistema Inglés
-        # Convertir presión total de atm a psi
-        P_psi = total_pressure_atm * 14.696
+        P_total = total_pressure_atm * 14.696 # Convertir atm a psi
 
-        # Presión de vapor de saturación a la temperatura de bulbo húmedo (en psi)
-        # Aproximación para t en °F
-        P_ws_tw_psi = 0.1805 * np.exp((17.27 * (t_wet_bulb - 32)) / (t_wet_bulb - 32 + 427.3))
+    # Presión de vapor de saturación a la temperatura de bulbo húmedo
+    P_ws_tw = get_saturation_vapor_pressure(t_wet_bulb, units_system)
 
-        # Constante psicrométrica (aproximación para presión estándar, en psi^-1)
-        psychrometric_constant = 0.000367 # psi^-1
+    # Presión de vapor (Pv)
+    Pv = P_ws_tw - psych_const * P_total * (t_dry_bulb - t_wet_bulb)
 
-        # Presión de vapor (Pv)
-        Pv_psi = P_ws_tw_psi - psychrometric_constant * P_psi * (t_dry_bulb - t_wet_bulb)
+    # Asegurar que Pv no sea negativo
+    if Pv < 0:
+        Pv = 0
 
-        # Asegurar que Pv no sea negativo
-        if Pv_psi < 0:
-            Pv_psi = 0
+    # Humedad absoluta (Y)
+    if (P_total - Pv) <= 0:
+        return float('inf') # Retornar infinito para indicar un estado de saturación/error
+    Y = 0.62198 * (Pv / (P_total - Pv))
+    return Y
 
-        # Humedad absoluta (Y)
-        if (P_psi - Pv_psi) <= 0:
-            return float('inf')
-        Y = 0.62198 * (Pv_psi / (P_psi - Pv_psi))
-        return Y
-
-# Nueva función para calcular Y1 a partir de bulbo seco y humedad relativa
+# Función para calcular Y1 a partir de bulbo seco y humedad relativa
 def calculate_Y_from_relative_humidity(t_dry_bulb, relative_humidity_percent, total_pressure_atm, units_system):
     """
     Calcula la humedad absoluta (Y) a partir de la temperatura de bulbo seco,
     humedad relativa y presión total.
     """
     if units_system == 'Sistema Internacional':
-        P_kPa = total_pressure_atm * 101.325
-        # Presión de vapor de saturación a la temperatura de bulbo seco (en kPa)
-        P_ws_tdb_kPa = 0.6108 * np.exp((17.27 * t_dry_bulb) / (t_dry_bulb + 237.3))
-        
-        # Presión de vapor (Pv)
-        Pv_kPa = (relative_humidity_percent / 100.0) * P_ws_tdb_kPa
-
-        if (P_kPa - Pv_kPa) <= 0:
-            return float('inf') # Indica saturación o error
-        Y = 0.62198 * (Pv_kPa / (P_kPa - Pv_kPa))
-        return Y
+        P_total = total_pressure_atm * 101.325 # Convertir atm a kPa
     else: # Sistema Inglés
-        P_psi = total_pressure_atm * 14.696
-        # Presión de vapor de saturación a la temperatura de bulbo seco (en psi)
-        P_ws_tdb_psi = 0.1805 * np.exp((17.27 * (t_dry_bulb - 32)) / (t_dry_bulb - 32 + 427.3))
+        P_total = total_pressure_atm * 14.696 # Convertir atm a psi
 
-        # Presión de vapor (Pv)
-        Pv_psi = (relative_humidity_percent / 100.0) * P_ws_tdb_psi
+    # Presión de vapor de saturación a la temperatura de bulbo seco
+    P_ws_tdb = get_saturation_vapor_pressure(t_dry_bulb, units_system)
+    
+    # Presión de vapor (Pv)
+    Pv = (relative_humidity_percent / 100.0) * P_ws_tdb
 
-        if (P_psi - Pv_psi) <= 0:
-            return float('inf')
-        Y = 0.62198 * (Pv_psi / (P_psi - Pv_psi))
-        return Y
+    if (P_total - Pv) <= 0:
+        return float('inf') # Indica saturación o error
+    Y = 0.62198 * (Pv / (P_total - Pv))
+    return Y
 
 
 # ==================== ENTRADA DE DATOS DEL PROBLEMA ====================
 st.sidebar.header('Parámetros del Problema')
+
+# Presión de operación (P, atm) se define una sola vez al principio
+P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f")
 
 # Uso de st.number_input para permitir al usuario ingresar los valores
 L = st.sidebar.number_input(f'Flujo de agua (L, {flow_unit})', value=2200.0, format="%.2f")
@@ -172,10 +158,9 @@ if Y1_source_option == 'Ingresar Y1 directamente':
 elif Y1_source_option == 'Calcular Y1 a partir de Bulbo Húmedo':
     tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
     tw1 = st.sidebar.number_input(f'Bulbo húmedo del aire a la entrada (tw1, {temp_unit})', value=76.0, format="%.2f")
-    P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f") # P es necesario para el cálculo
     st.sidebar.write("Calculando Y1 a partir de Bulbo Húmedo:")
     try:
-        calculated_Y1 = calculate_Y_from_wet_bulb(tG1, tw1, P, opcion_unidades)
+        calculated_Y1 = calculate_Y_from_wet_bulb(tG1, tw1, P, opcion_unidades, psychrometric_constant)
         if calculated_Y1 == float('inf'):
             st.sidebar.error("Error al calcular Y1: Posible saturación o datos inconsistentes. Ajuste las temperaturas de bulbo seco y húmedo.")
             Y1 = 0.016 # Valor de respaldo en caso de error
@@ -188,7 +173,6 @@ elif Y1_source_option == 'Calcular Y1 a partir de Bulbo Húmedo':
 elif Y1_source_option == 'Calcular Y1 a partir de Humedad Relativa':
     tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
     relative_humidity = st.sidebar.number_input('Humedad Relativa a la entrada (HR, %)', value=50.0, min_value=0.0, max_value=100.0, format="%.1f")
-    P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f") # P es necesario para el cálculo
     # tw1 no es necesario para este cálculo, pero se puede mantener para evitar errores si se usa en otro lugar
     tw1 = 0.0 # Valor por defecto, no se usa en este cálculo
     st.sidebar.write("Calculando Y1 a partir de Humedad Relativa:")
@@ -204,15 +188,7 @@ elif Y1_source_option == 'Calcular Y1 a partir de Humedad Relativa':
         st.sidebar.error(f"Error en el cálculo de Y1: {e}. Usando valor por defecto.")
         Y1 = 0.016 # Valor de respaldo en caso de error
 
-# La presión P y KYa se muestran aquí, fuera de los bloques condicionales de Y1
-# para asegurar que siempre estén presentes y no se dupliquen si se usan en múltiples ramas.
-# Si P ya se definió en un bloque anterior, Streamlit lo manejará correctamente.
-if Y1_source_option != 'Calcular Y1 a partir de Bulbo Húmedo' and Y1_source_option != 'Calcular Y1 a partir de Humedad Relativa':
-    P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f") # Solo mostrar si no se calculó Y1
-
 KYa = st.sidebar.number_input(f'Coef. volumétrico de transferencia de materia (KYa, {kya_unit})', value=850.0, format="%.2f")
-# Se elimina la entrada de Cp, ya que se usará Cp_default directamente
-# Cp = st.sidebar.number_input(f'Calor específico del agua (Cp, {cp_unit})', value=Cp_default, format="%.2f")
 
 # ==================== CÁLCULOS BASE ====================
 try:
@@ -398,7 +374,7 @@ try:
     Lrep = Gs * (Y_air[-1] - Y1)
 
     # ==================== RESULTADOS ====================
-    st.subheader('Resultados del Cálculo')
+    st.subheader('Resultado del Cálculo')
     st.info(f"**Línea de operación:**")
     st.write(f"  - Cabeza de la torre (entrada de agua): (t = {tfin:.2f} {temp_unit}, H = {Hfin:.2f} {enthalpy_unit})")
     st.write(f"  - Base de la torre (salida de agua): (t = {tini:.2f} {temp_unit}, H = {Hini:.2f} {enthalpy_unit})")
