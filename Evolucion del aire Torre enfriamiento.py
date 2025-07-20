@@ -3,7 +3,7 @@ import streamlit as st # Importa la librería Streamlit
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
-from scipy.optimize import fsolve # Para resolver numéricamente el punto de pellizco
+# from scipy.optimize import fsolve # No se usará fsolve para el pinch point en esta versión
 
 # ==================== CONFIGURACIÓN DE LA PÁGINA (OPCIONAL) ====================
 st.set_page_config(
@@ -239,51 +239,54 @@ try:
     # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE ====================
     st.subheader('Cálculo del Flujo Mínimo de Aire')
 
-    # Función para encontrar el punto de tangencia (pinch point)
-    # Queremos encontrar t_pinch tal que H_star(t_pinch) - (Hini + m * (t_pinch - tini)) = 0
-    # y m = dH_star/dt(t_pinch)
-    # Sustituyendo m: H_star(t_pinch) - Hini - dH_star/dt(t_pinch) * (t_pinch - tini) = 0
-    def find_t_pinch_root(t_pinch_guess):
-        # Asegurarse de que t_pinch_guess esté dentro del rango de teq para la derivada
-        t_pinch_guess = np.clip(t_pinch_guess, min(teq), max(teq))
-        
-        slope_at_t_pinch = dH_star_dt_func(t_pinch_guess)
-        return H_star_func(t_pinch_guess) - (Hini + slope_at_t_pinch * (t_pinch_guess - tini))
+    # Inicializar valores de respaldo en caso de error en el cálculo del pinch point
+    Gs_min = 1.0
+    Hfin_min = Hini + (L * Cp_default / Gs_min) * (tfin - tini)
+    t_pinch_for_Gs_min = tini
+    H_pinch_value = H_star_func(tini) # Valor inicial para el pinch point en el gráfico
 
-    t_pinch = tini # Valor inicial para la búsqueda del pinch point
     try:
-        # Usar fsolve para encontrar la raíz (t_pinch)
-        # Limitar el rango de búsqueda para t_pinch para evitar soluciones no físicas
-        t_pinch_solution = fsolve(find_t_pinch_root, tini, xtol=1e-6, maxfev=1000)[0]
+        # Generar un rango de temperaturas de agua entre tini y tfin para buscar el pinch point
+        # Se añade un pequeño offset a tini para evitar división por cero si tini es el pinch point
+        # y para asegurar que el rango de búsqueda sea válido.
+        t_eval_min_flow = np.linspace(tini + 1e-6, tfin, 200) # Evitar división por cero en tini
         
-        # Asegurarse de que el pinch point esté dentro del rango de operación
-        if not (tini <= t_pinch_solution <= tfin):
-            st.warning(f"Advertencia: El punto de pellizco calculado ({t_pinch_solution:.2f} {temp_unit}) está fuera del rango de temperatura del agua ({tini:.2f} - {tfin:.2f} {temp_unit}). Esto puede indicar datos de entrada problemáticos o que el enfriamiento deseado es imposible.")
-            # Si el pinch point está fuera, usaremos tini como punto de referencia para Gs_min
-            t_pinch_for_Gs_min = tini
-        else:
-            t_pinch_for_Gs_min = t_pinch_solution
+        slopes = []
+        for t_val in t_eval_min_flow:
+            # Calcular la entalpía de equilibrio en este punto
+            H_star_at_t_val = H_star_func(t_val)
+            
+            # Calcular la pendiente de la línea que va de (tini, Hini) a (t_val, H_star_at_t_val)
+            current_slope = (H_star_at_t_val - Hini) / (t_val - tini)
+            slopes.append(current_slope)
 
-        # Calcular la pendiente mínima de la línea de operación (m_min)
-        m_min = dH_star_dt_func(t_pinch_for_Gs_min)
+        if not slopes:
+            st.error("No se pudieron calcular las pendientes para el flujo mínimo. Revise los datos de entrada.")
+            st.stop()
+
+        # El Gs_min corresponde a la pendiente máxima de esta línea (la más empinada)
+        # porque m = L*Cp/Gs, entonces Gs = L*Cp/m. Para Gs_min, m debe ser máximo.
+        max_slope_index = np.argmax(slopes)
+        m_min = slopes[max_slope_index]
+        t_pinch_for_Gs_min = t_eval_min_flow[max_slope_index]
+        H_pinch_value = H_star_func(t_pinch_for_Gs_min)
 
         # Validar la pendiente
         if m_min <= 0:
-            st.error("Error: La pendiente de la curva de equilibrio en el punto de pellizco es cero o negativa. Esto puede indicar un problema con los datos de equilibrio o que el enfriamiento deseado es imposible.")
+            st.error("Error: La pendiente máxima calculada para el flujo mínimo es cero o negativa. Esto puede indicar un problema con los datos de equilibrio o que el enfriamiento deseado es imposible.")
             st.stop()
 
         # Calcular Gs_min (flujo mínimo de aire seco)
-        # m_min = (L * Cp_default) / Gs_min  => Gs_min = (L * Cp_default) / m_min
         Gs_min = (L * Cp_default) / m_min
 
         # Calcular Hfin_min (entalpía del aire a la salida con flujo mínimo)
-        # Hfin_min es el punto final de la línea de operación que empieza en Hini con Gs_min
         Hfin_min = Hini + m_min * (tfin - tini)
 
         # Convertir Gs_min a G_min (flujo total de aire)
         G_min = Gs_min / (1 - y1) 
 
         st.write(f"  - Punto de pellizco (temperatura): **{t_pinch_for_Gs_min:.2f}** {temp_unit}")
+        st.write(f"  - Punto de pellizco (entalpía): **{H_pinch_value:.2f}** {enthalpy_unit}")
         st.write(f"  - Flujo mínimo de aire seco (Gs_min): **{Gs_min:.2f}** {flow_unit.replace('tiempo', 's' if 's' in flow_unit else 'h').replace('aire', 'aire seco')}")
         st.write(f"  - Flujo mínimo de aire (G_min): **{G_min:.2f}** {flow_unit}")
         st.write(f"  - Entalpía del aire a la salida con flujo mínimo (Hfin_min): **{Hfin_min:.2f}** {enthalpy_unit}")
@@ -489,7 +492,6 @@ try:
     
     # Añadir un marcador para el punto de pellizco
     # H_pinch_value es la entalpía en la curva de equilibrio en t_pinch_for_Gs_min
-    H_pinch_value = H_star_func(t_pinch_for_Gs_min)
     ax.plot(t_pinch_for_Gs_min, H_pinch_value, 'go', markersize=8, label='Punto de Pellizco (Pinch Point)')
 
 
