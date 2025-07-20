@@ -2,8 +2,8 @@
 import streamlit as st # Importa la librería Streamlit
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
-# from scipy.optimize import fsolve # No se usará fsolve para el pinch point en esta versión
+from scipy.interpolate import interp1d, splev, splrep # Import splev and splrep
+from scipy.optimize import fsolve # Para resolver numéricamente el punto de pellizco
 
 # ==================== CONFIGURACIÓN DE LA PÁGINA (OPCIONAL) ====================
 st.set_page_config(
@@ -174,7 +174,7 @@ elif Y1_source_option == 'Calcular Y1 a partir de Bulbo Húmedo':
 elif Y1_source_option == 'Calcular Y1 a partir de Humedad Relativa':
     tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
     relative_humidity = st.sidebar.number_input('Humedad Relativa a la entrada (HR, %)', value=50.0, min_value=0.0, max_value=100.0, format="%.1f")
-    # tw1 no es necesario para este cálculo, pero se puede mantener para evitar errores si se usa en otro lugar
+    # tw1 no es necesario para este cálculo, pero se puede mantener para consistencia en el flujo de datos
     tw1 = 0.0 # Valor por defecto, no se usa en este cálculo
     st.sidebar.write("Calculando Y1 a partir de Humedad Relativa:")
     try:
@@ -214,26 +214,34 @@ try:
 
     # ==================== Polinomio H*(t) ====================
     H_star_func = interp1d(teq, Heq_data, kind='cubic', fill_value='extrapolate')
+    # Create a spline representation for derivatives
+    tck = splrep(teq, Heq_data, k=3) # k=3 for cubic spline
 
-    # Función para calcular la derivada numérica de H_star_func
-    def dH_star_dt_func(t):
-        delta_t_for_deriv = (max(teq) - min(teq)) / 10000.0 # Más pequeño para mayor precisión
-        # Asegurarse de no ir fuera del rango de interpolación
-        t_plus = t + delta_t_for_deriv
-        t_minus = t - delta_t_for_deriv
+    # Function to calculate the derivative of H_star_func using spline representation
+    def dH_star_dt_func_spline(t_val):
+        # splev(x, tck, der=0) evaluates the spline, der=1 evaluates the first derivative
+        # Ensure t_val is within the range of the spline for derivative calculation
+        t_val_clipped = np.clip(t_val, np.min(teq), np.max(teq))
+        return splev(t_val_clipped, tck, der=1)
+
+    # Function to find the root for the pinch point (tangency condition)
+    def find_pinch_root(t_pinch_candidate, H_star_func, Hini, tini, tck_spline):
+        # Ensure t_pinch_candidate is within a valid range for interpolation and derivative
+        t_pinch_candidate_clipped = np.clip(t_pinch_candidate, np.min(teq), np.max(teq))
         
-        # Ajustar si los puntos de la derivada caen fuera del rango de teq
-        if t_plus > max(teq):
-            t_plus = max(teq)
-            t_minus = max(teq) - 2 * delta_t_for_deriv
-        if t_minus < min(teq):
-            t_minus = min(teq)
-            t_plus = min(teq) + 2 * delta_t_for_deriv
+        # Calculate derivative at the candidate point using spline derivative
+        dH_dt_at_pinch = splev(t_pinch_candidate_clipped, tck_spline, der=1)
+
+        # Avoid division by zero if t_pinch_candidate is too close to tini
+        if abs(t_pinch_candidate - tini) < 1e-6:
+            # If t_pinch is essentially tini, the slope of the operating line is dH_dt_at_pinch
+            # and the condition for tangency means H_star(tini) should be equal to Hini.
+            # This is a special case where the operating line starts tangent from tini.
+            # The equation to solve becomes H_star(tini) - Hini = 0
+            return H_star_func(tini) - Hini
         
-        if abs(t_plus - t_minus) < 1e-9: # Evitar división por cero si los puntos son demasiado cercanos
-            return 0 # O manejar como error si la pendiente es crítica
-        
-        return (H_star_func(t_plus) - H_star_func(t_minus)) / (t_plus - t_minus)
+        # The equation to solve: H_star(t_pinch) - Hini - dH_star/dt(t_pinch) * (t_pinch - tini) = 0
+        return H_star_func(t_pinch_candidate) - Hini - dH_dt_at_pinch * (t_pinch_candidate - tini)
 
 
     # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE ====================
@@ -246,40 +254,56 @@ try:
     H_pinch_value = H_star_func(tini) # Valor inicial para el pinch point en el gráfico
 
     try:
-        # Generar un rango de temperaturas de agua entre tini y tfin para buscar el pinch point
-        # Se añade un pequeño offset a tini para evitar división por cero si tini es el pinch point
-        # y para asegurar que el rango de búsqueda sea válido.
-        t_eval_min_flow = np.linspace(tini + 1e-6, tfin, 200) # Evitar división por cero en tini
-        
-        slopes = []
-        for t_val in t_eval_min_flow:
-            # Calcular la entalpía de equilibrio en este punto
-            H_star_at_t_val = H_star_func(t_val)
+        # Initial guess for t_pinch, within the operating range and within teq range
+        initial_t_pinch_guess = np.clip((tini + tfin) / 2.0, np.min(teq), np.max(teq))
+
+        # Solve for t_pinch
+        t_pinch_solution_array = fsolve(find_pinch_root, initial_t_pinch_guess, 
+                                        args=(H_star_func, Hini, tini, tck), # Pass tck
+                                        xtol=1e-6, maxfev=1000)
+        t_pinch_candidate = t_pinch_solution_array[0]
+
+        # Validate if the found pinch point is within the desired operating range [tini, tfin]
+        # and also within the equilibrium data range [min(teq), max(teq)]
+        if (tini <= t_pinch_candidate <= tfin) and (np.min(teq) <= t_pinch_candidate <= np.max(teq)):
+            t_pinch_for_Gs_min = t_pinch_candidate
+            m_min = splev(t_pinch_for_Gs_min, tck, der=1) # Use spline derivative for m_min
+            H_pinch_value = H_star_func(t_pinch_for_Gs_min)
             
-            # Calcular la pendiente de la línea que va de (tini, Hini) a (t_val, H_star_at_t_val)
-            current_slope = (H_star_at_t_val - Hini) / (t_val - tini)
-            slopes.append(current_slope)
+            # Check if the calculated m_min makes sense (should be positive for cooling)
+            if m_min <= 0:
+                raise ValueError("Calculated minimum slope is non-positive, check equilibrium data or cooling feasibility.")
 
-        if not slopes:
-            st.error("No se pudieron calcular las pendientes para el flujo mínimo. Revise los datos de entrada.")
-            st.stop()
+        else:
+            # If fsolve gives a solution outside the valid range, or if no tangent point exists
+            # within the operating range, the minimum Gs is determined by the steepest slope
+            # from (tini, Hini) to any point on the equilibrium curve within [tini, tfin].
+            # This is the "corner" case.
+            st.warning(f"Advertencia: El punto de pellizco calculado ({t_pinch_candidate:.2f} {temp_unit}) está fuera del rango de temperatura del agua ({tini:.2f} - {tfin:.2f} {temp_unit}) o fuera del rango de datos de equilibrio. Se buscará el punto de máxima pendiente dentro del rango de operación.")
+            
+            t_eval_for_max_slope = np.linspace(tini + 1e-6, tfin, 200) # Exclude tini to avoid division by zero
+            if not t_eval_for_max_slope.size > 0:
+                raise ValueError("Invalid temperature range for minimum flow calculation.")
 
-        # El Gs_min corresponde a la pendiente máxima de esta línea (la más empinada)
-        # porque m = L*Cp/Gs, entonces Gs = L*Cp/m. Para Gs_min, m debe ser máximo.
-        max_slope_index = np.argmax(slopes)
-        m_min = slopes[max_slope_index]
-        t_pinch_for_Gs_min = t_eval_min_flow[max_slope_index]
-        H_pinch_value = H_star_func(t_pinch_for_Gs_min)
+            slopes_from_Hini = []
+            for t_val in t_eval_for_max_slope:
+                # Ensure t_val is within teq range for H_star_func
+                t_val_clipped = np.clip(t_val, np.min(teq), np.max(teq))
+                slope = (H_star_func(t_val_clipped) - Hini) / (t_val - tini)
+                slopes_from_Hini.append(slope)
+            
+            max_slope_index = np.argmax(slopes_from_Hini)
+            m_min = slopes_from_Hini[max_slope_index]
+            t_pinch_for_Gs_min = t_eval_for_max_slope[max_slope_index]
+            H_pinch_value = H_star_func(t_pinch_for_Gs_min)
 
-        # Validar la pendiente
-        if m_min <= 0:
-            st.error("Error: La pendiente máxima calculada para el flujo mínimo es cero o negativa. Esto puede indicar un problema con los datos de equilibrio o que el enfriamiento deseado es imposible.")
-            st.stop()
+            if m_min <= 0:
+                raise ValueError("Calculated maximum slope for minimum flow is non-positive, check equilibrium data or cooling feasibility.")
 
-        # Calcular Gs_min (flujo mínimo de aire seco)
+        # Calculate Gs_min (flujo mínimo de aire seco)
         Gs_min = (L * Cp_default) / m_min
 
-        # Calcular Hfin_min (entalpía del aire a la salida con flujo mínimo)
+        # Calculate Hfin_min (entalpía del aire a la salida con flujo mínimo)
         Hfin_min = Hini + m_min * (tfin - tini)
 
         # Convertir Gs_min a G_min (flujo total de aire)
@@ -303,6 +327,7 @@ try:
         Gs_min = 1.0
         Hfin_min = Hini + (L * Cp_default / Gs_min) * (tfin - tini) # Valor de respaldo
         t_pinch_for_Gs_min = tini # Valor de respaldo
+        H_pinch_value = H_star_func(tini) # Valor de respaldo
 
 
     # ==================== MÉTODO DE MICKLEY ======================
