@@ -214,6 +214,60 @@ try:
     # ==================== Polinomio H*(t) ====================
     H_star_func = interp1d(teq, Heq_data, kind='cubic', fill_value='extrapolate')
 
+    # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE ====================
+    st.subheader('Cálculo del Flujo Mínimo de Aire')
+
+    # Calcular la pendiente de la curva de equilibrio en tini (dH_star/dt)
+    # Usamos una pequeña diferencia finita para la derivada numérica
+    delta_t_for_deriv = (max(teq) - min(teq)) / 1000.0 # Pequeño delta relativo al rango de temperaturas
+    
+    # Asegurarse de que los puntos para la derivada estén dentro del rango de interpolación
+    t_upper_deriv = tini + delta_t_for_deriv
+    t_lower_deriv = tini - delta_t_for_deriv
+
+    # Ajustar si los puntos de la derivada caen fuera del rango de teq
+    if t_upper_deriv > max(teq):
+        t_upper_deriv = max(teq)
+        t_lower_deriv = max(teq) - 2 * delta_t_for_deriv # Ajustar para mantener el delta
+    if t_lower_deriv < min(teq):
+        t_lower_deriv = min(teq)
+        t_upper_deriv = min(teq) + 2 * delta_t_for_deriv # Ajustar para mantener el delta
+
+    # Asegurarse de que t_upper_deriv y t_lower_deriv no sean iguales
+    if abs(t_upper_deriv - t_lower_deriv) < 1e-9:
+        st.error("Error al calcular la pendiente de la curva de equilibrio: Rango de temperatura demasiado pequeño o punto de salida del agua en el límite de los datos de equilibrio. Ajuste los datos de la curva de equilibrio o la temperatura de salida del agua.")
+        st.stop()
+
+    dH_star_dt_at_tini = (H_star_func(t_upper_deriv) - H_star_func(t_lower_deriv)) / (t_upper_deriv - t_lower_deriv)
+
+    # Validar la pendiente
+    if dH_star_dt_at_tini <= 0:
+        st.error("Error: La pendiente de la curva de equilibrio en la temperatura de salida del agua es cero o negativa. Esto puede indicar un problema con los datos de equilibrio o que el enfriamiento deseado es imposible.")
+        st.stop()
+
+    # Calcular Gs_min (flujo mínimo de aire seco)
+    # La pendiente de la línea de operación es (L * Cp_default) / Gs
+    # En el punto de pellizco, la pendiente de la línea de operación es igual a la pendiente de la curva de equilibrio
+    Gs_min = (L * Cp_default) / dH_star_dt_at_tini
+
+    # Calcular Hfin_min (entalpía del aire a la salida con flujo mínimo)
+    Hfin_min = Hini + (L * Cp_default / Gs_min) * (tfin - tini)
+
+    # Convertir Gs_min a G_min (flujo total de aire)
+    # Se usa la Y1 de entrada para la conversión
+    G_min = Gs_min / (1 - y1) 
+
+    st.write(f"  - Flujo mínimo de aire seco (Gs_min): **{Gs_min:.2f}** {flow_unit.replace('tiempo', 's' if 's' in flow_unit else 'h').replace('aire', 'aire seco')}")
+    st.write(f"  - Flujo mínimo de aire (G_min): **{G_min:.2f}** {flow_unit}")
+    st.write(f"  - Entalpía del aire a la salida con flujo mínimo (Hfin_min): **{Hfin_min:.2f}** {enthalpy_unit}")
+
+    # Advertencias si el flujo de aire actual es cercano o menor al mínimo
+    if G < G_min:
+        st.warning(f"Advertencia: El flujo de aire actual (G={G:.2f} {flow_unit}) es menor que el flujo mínimo requerido (G_min={G_min:.2f} {flow_unit}). Esto indica que el enfriamiento deseado es imposible con el flujo de aire actual.")
+    elif G / G_min < 1.1: # Si está dentro del 10% del mínimo
+        st.warning(f"Advertencia: El flujo de aire actual (G={G:.2f} {flow_unit}) está muy cerca del flujo mínimo requerido (G_min={G_min:.2f} {flow_unit}). Operar tan cerca del mínimo puede requerir una torre de enfriamiento muy grande y costosa.")
+
+
     # ==================== MÉTODO DE MICKLEY ======================
     DH = (Hfin - Hini) / 20
     
