@@ -62,6 +62,91 @@ def calcular_entalpia_aire(t, Y, temp_ref, latent_ref, cp_air_dry, cp_vapor):
 def calcular_Y(H, t, temp_ref, latent_ref, cp_air_dry, cp_vapor):
     return (H - cp_air_dry * (t - temp_ref)) / (cp_vapor * (t - temp_ref) + latent_ref)
 
+# Función para calcular Y1 a partir de bulbo seco y bulbo húmedo
+def calculate_Y_from_wet_bulb(t_dry_bulb, t_wet_bulb, total_pressure_atm, units_system):
+    """
+    Calcula la humedad absoluta (Y) a partir de la temperatura de bulbo seco,
+    temperatura de bulbo húmedo y presión total, utilizando correlaciones psicrométricas.
+    """
+    if units_system == 'Sistema Internacional':
+        # Convertir presión total de atm a kPa
+        P_kPa = total_pressure_atm * 101.325
+
+        # Presión de vapor de saturación a la temperatura de bulbo húmedo (en kPa)
+        # Utilizando la fórmula de Magnus (aproximación para t en °C)
+        P_ws_tw_kPa = 0.6108 * np.exp((17.27 * t_wet_bulb) / (t_wet_bulb + 237.3))
+
+        # Constante psicrométrica (aproximación para presión estándar, en kPa^-1)
+        psychrometric_constant = 0.000662 # kPa^-1
+
+        # Presión de vapor (Pv)
+        Pv_kPa = P_ws_tw_kPa - psychrometric_constant * P_kPa * (t_dry_bulb - t_wet_bulb)
+
+        # Asegurar que Pv no sea negativo
+        if Pv_kPa < 0:
+            Pv_kPa = 0
+
+        # Humedad absoluta (Y)
+        if (P_kPa - Pv_kPa) <= 0:
+            return float('inf') # Retornar infinito para indicar un estado de saturación/error
+        Y = 0.62198 * (Pv_kPa / (P_kPa - Pv_kPa))
+        return Y
+    else: # Sistema Inglés
+        # Convertir presión total de atm a psi
+        P_psi = total_pressure_atm * 14.696
+
+        # Presión de vapor de saturación a la temperatura de bulbo húmedo (en psi)
+        # Aproximación para t en °F
+        P_ws_tw_psi = 0.1805 * np.exp((17.27 * (t_wet_bulb - 32)) / (t_wet_bulb - 32 + 427.3))
+
+        # Constante psicrométrica (aproximación para presión estándar, en psi^-1)
+        psychrometric_constant = 0.000367 # psi^-1
+
+        # Presión de vapor (Pv)
+        Pv_psi = P_ws_tw_psi - psychrometric_constant * P_psi * (t_dry_bulb - t_wet_bulb)
+
+        # Asegurar que Pv no sea negativo
+        if Pv_psi < 0:
+            Pv_psi = 0
+
+        # Humedad absoluta (Y)
+        if (P_psi - Pv_psi) <= 0:
+            return float('inf')
+        Y = 0.62198 * (Pv_psi / (P_psi - Pv_psi))
+        return Y
+
+# Nueva función para calcular Y1 a partir de bulbo seco y humedad relativa
+def calculate_Y_from_relative_humidity(t_dry_bulb, relative_humidity_percent, total_pressure_atm, units_system):
+    """
+    Calcula la humedad absoluta (Y) a partir de la temperatura de bulbo seco,
+    humedad relativa y presión total.
+    """
+    if units_system == 'Sistema Internacional':
+        P_kPa = total_pressure_atm * 101.325
+        # Presión de vapor de saturación a la temperatura de bulbo seco (en kPa)
+        P_ws_tdb_kPa = 0.6108 * np.exp((17.27 * t_dry_bulb) / (t_dry_bulb + 237.3))
+        
+        # Presión de vapor (Pv)
+        Pv_kPa = (relative_humidity_percent / 100.0) * P_ws_tdb_kPa
+
+        if (P_kPa - Pv_kPa) <= 0:
+            return float('inf') # Indica saturación o error
+        Y = 0.62198 * (Pv_kPa / (P_kPa - Pv_kPa))
+        return Y
+    else: # Sistema Inglés
+        P_psi = total_pressure_atm * 14.696
+        # Presión de vapor de saturación a la temperatura de bulbo seco (en psi)
+        P_ws_tdb_psi = 0.1805 * np.exp((17.27 * (t_dry_bulb - 32)) / (t_dry_bulb - 32 + 427.3))
+
+        # Presión de vapor (Pv)
+        Pv_psi = (relative_humidity_percent / 100.0) * P_ws_tdb_psi
+
+        if (P_psi - Pv_psi) <= 0:
+            return float('inf')
+        Y = 0.62198 * (Pv_psi / (P_psi - Pv_psi))
+        return Y
+
+
 # ==================== ENTRADA DE DATOS DEL PROBLEMA ====================
 st.sidebar.header('Parámetros del Problema')
 
@@ -70,19 +155,63 @@ L = st.sidebar.number_input(f'Flujo de agua (L, {flow_unit})', value=2200.0, for
 G = st.sidebar.number_input(f'Flujo de aire (G, {flow_unit})', value=2000.0, format="%.2f")
 tfin = st.sidebar.number_input(f'Temperatura de entrada del agua (tfin, {temp_unit})', value=105.0, format="%.2f")
 tini = st.sidebar.number_input(f'Temperatura de salida del agua (tini, {temp_unit})', value=85.0, format="%.2f")
-tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
-tw1 = st.sidebar.number_input(f'Bulbo húmedo del aire a la entrada (tw1, {temp_unit})', value=76.0, format="%.2f")
-Y1 = st.sidebar.number_input(f'Humedad absoluta del aire a la entrada (Y1, {Y_unit})', value=0.016, format="%.5f")
-P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f")
+
+# Añadir la opción para la fuente de Y1
+Y1_source_option = st.sidebar.radio(
+    "Fuente de Humedad Absoluta (Y1):",
+    ('Ingresar Y1 directamente', 'Calcular Y1 a partir de Bulbo Húmedo', 'Calcular Y1 a partir de Humedad Relativa')
+)
+
+Y1 = 0.016 # Valor por defecto inicial
+
+if Y1_source_option == 'Ingresar Y1 directamente':
+    tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
+    # tw1 no es necesario si se ingresa Y1 directamente, pero se mantiene para consistencia en el flujo de datos
+    tw1 = st.sidebar.number_input(f'Bulbo húmedo del aire a la entrada (tw1, {temp_unit})', value=76.0, format="%.2f")
+    Y1 = st.sidebar.number_input(f'Humedad absoluta del aire a la entrada (Y1, {Y_unit})', value=0.016, format="%.5f")
+elif Y1_source_option == 'Calcular Y1 a partir de Bulbo Húmedo':
+    tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
+    tw1 = st.sidebar.number_input(f'Bulbo húmedo del aire a la entrada (tw1, {temp_unit})', value=76.0, format="%.2f")
+    P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f") # P es necesario para el cálculo
+    st.sidebar.write("Calculando Y1 a partir de Bulbo Húmedo:")
+    try:
+        calculated_Y1 = calculate_Y_from_wet_bulb(tG1, tw1, P, opcion_unidades)
+        if calculated_Y1 == float('inf'):
+            st.sidebar.error("Error al calcular Y1: Posible saturación o datos inconsistentes. Ajuste las temperaturas de bulbo seco y húmedo.")
+            Y1 = 0.016 # Valor de respaldo en caso de error
+        else:
+            Y1 = calculated_Y1
+            st.sidebar.info(f"Y1 calculado: **{Y1:.5f}** ({Y_unit})")
+    except Exception as e:
+        st.sidebar.error(f"Error en el cálculo de Y1: {e}. Usando valor por defecto.")
+        Y1 = 0.016 # Valor de respaldo en caso de error
+elif Y1_source_option == 'Calcular Y1 a partir de Humedad Relativa':
+    tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
+    relative_humidity = st.sidebar.number_input('Humedad Relativa a la entrada (HR, %)', value=50.0, min_value=0.0, max_value=100.0, format="%.1f")
+    P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f") # P es necesario para el cálculo
+    # tw1 no es necesario para este cálculo, pero se puede mantener para evitar errores si se usa en otro lugar
+    tw1 = 0.0 # Valor por defecto, no se usa en este cálculo
+    st.sidebar.write("Calculando Y1 a partir de Humedad Relativa:")
+    try:
+        calculated_Y1 = calculate_Y_from_relative_humidity(tG1, relative_humidity, P, opcion_unidades)
+        if calculated_Y1 == float('inf'):
+            st.sidebar.error("Error al calcular Y1: Posible saturación o datos inconsistentes. Ajuste la temperatura de bulbo seco y la humedad relativa.")
+            Y1 = 0.016 # Valor de respaldo en caso de error
+        else:
+            Y1 = calculated_Y1
+            st.sidebar.info(f"Y1 calculado: **{Y1:.5f}** ({Y_unit})")
+    except Exception as e:
+        st.sidebar.error(f"Error en el cálculo de Y1: {e}. Usando valor por defecto.")
+        Y1 = 0.016 # Valor de respaldo en caso de error
+
+# La presión P y KYa y Cp se muestran aquí, fuera de los bloques condicionales de Y1
+# para asegurar que siempre estén presentes y no se dupliquen si se usan en múltiples ramas.
+# Si P ya se definió en un bloque anterior, Streamlit lo manejará correctamente.
+if Y1_source_option != 'Calcular Y1 a partir de Bulbo Húmedo' and Y1_source_option != 'Calcular Y1 a partir de Humedad Relativa':
+    P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f") # Solo mostrar si no se calculó Y1
+
 KYa = st.sidebar.number_input(f'Coef. volumétrico de transferencia de materia (KYa, {kya_unit})', value=850.0, format="%.2f")
 Cp = st.sidebar.number_input(f'Calor específico del agua (Cp, {cp_unit})', value=Cp_default, format="%.2f")
-
-# Botón para ejecutar el cálculo (opcional, Streamlit recalcula en cada cambio de input)
-# He comentado esta sección ya que Streamlit recalcula automáticamente con los cambios de input
-# if st.sidebar.button('Calcular'):
-#     st.write("Calculando...")
-# else:
-#     st.write("Ajusta los parámetros y observa los resultados.")
 
 # ==================== CÁLCULOS BASE ====================
 try:
@@ -102,10 +231,6 @@ try:
     # Validaciones iniciales
     if tini >= tfin:
         st.warning("Advertencia: La temperatura de salida del agua (tini) debe ser menor que la de entrada (tfin) para un enfriamiento.")
-        # No detendremos la ejecución aquí, solo mostraremos una advertencia.
-        # if Hfin <= Hini: # Esta condición puede ser redundante si tini >= tfin y L, Cp, Gs son positivos
-        #     st.warning("Advertencia: La entalpía final del aire no es mayor que la inicial. Posible problema en los datos de entrada o no hay enfriamiento.")
-        #     st.stop()
 
 
     # ==================== Polinomio H*(t) ====================
@@ -237,41 +362,6 @@ try:
         st.warning("No se pudo generar la curva de evolución del aire. Revise las temperaturas y flujos de entrada.")
         st.stop()
         
-    # Asegurarse de que el último punto de la línea de operación y la curva de evolución del aire coincida con Hfin
-    # Este bloque ya debería estar cubierto por la lógica del bucle 'while True'
-    # si la condición H_next >= Hfin se maneja correctamente dentro del bucle.
-    # Lo dejo comentado para evitar duplicidad o lógica confusa.
-    # if H_air[-1] < Hfin:
-    #     H_air.append(Hfin)
-    #     t_op_final = tfin
-    #     if len(H_air) > 1 and len(t_air) > 1 and len(t_op) > 1 and len(H_star) > 1:
-    #         H_prev_evo = H_air[-2]
-    #         t_prev_evo = t_air[-2]
-    #         t_op_prev_evo = t_op[-2]
-    #         H_star_prev_evo = H_star[-2]
-    #         DH_last = Hfin - H_prev_evo
-    #         if abs(H_star_prev_evo - H_prev_evo) < 1e-6:
-    #             t_air_final = t_prev_evo
-    #         else:
-    #             t_air_final = DH_last * ((t_op_prev_evo - t_prev_evo) / (H_star_prev_evo - H_prev_evo)) + t_prev_evo
-    #     else:
-    #         t_air_final = tG1
-            
-    #     t_air.append(t_air_final)
-    #     Y_air.append(calcular_Y(Hfin, t_air_final, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor))
-    #     t_op.append(t_op_final)
-    #     H_op.append(Hfin)
-    #     H_star.append(H_star_func(t_op_final))
-            
-    #     if len(t_air) >= 2:
-    #         last_t_air = t_air[-1]
-    #         last_H_air = H_air[-1]
-    #         last_t_op = t_op[-1]
-    #         last_H_star = H_star_func(last_t_op)
-    #         segmentos.append(((last_t_air, last_H_air), (last_t_op, last_H_air)))
-    #         segmentos.append(((last_t_op, last_H_air), (last_t_op, last_H_star)))
-    #         segmentos.append(((last_t_op, last_H_star), (last_t_air, last_H_air)))
-
     # ==================== CÁLCULO DE NtoG ====================
     n_pasos_integracion = 100 # Aumentar pasos para mejor precisión en la integración
     dt_integracion = (tfin - tini) / n_pasos_integracion
