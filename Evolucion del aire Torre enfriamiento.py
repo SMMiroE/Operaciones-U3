@@ -449,6 +449,10 @@ try:
     ax.plot([tini, tfin], [Hini, Hfin], 'r-', label=f'Línea de operación Hop({temp_unit})', linewidth=2)
     ax.plot(t_air, H_air, 'ko-', label=f'Curva de evolución del aire H({temp_unit})', markersize=4, linewidth=1)
 
+    # Añadir la línea de operación con Gs_min
+    ax.plot([tini, tfin], [Hini, Hfin_min], 'g--', label=f'Línea de operación con Gs_min ({temp_unit})', linewidth=1.5)
+
+
     # Dibujo del triángulo inicial
     A_plot = (tG1, Hini)
     B_plot = (tini, Hini)
