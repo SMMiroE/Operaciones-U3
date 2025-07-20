@@ -29,24 +29,30 @@ if opcion_unidades == 'Sistema Inglés':
     Cp_default = 1.0    # calor específico del agua, Btu/(lb °F)
     temp_unit = "°F"
     enthalpy_unit = "BTU/lb aire seco"
-    flow_unit = "lb/(tiempo área)"
+    flow_unit = "lb/(h ft²)" # Especificación de unidades de flujo de agua y aire
     length_unit = "ft"
     h_temp_ref = 32
     h_latent_ref = 1075.8
     h_cp_air_dry = 0.24
     h_cp_vapor = 0.45
+    kya_unit = "lb/(h ft² DY)" # Especificación de unidades de KYa
+    cp_unit = "BTU/(lb agua °F)" # Especificación de unidades de Cp
+    Y_unit = "lb agua/lb aire seco" # Especificación de unidades de Y
 else: # Sistema Internacional
     teq = np.array([0, 10, 20, 30, 40, 50, 60])  # °C
     Heq_data = np.array([9479, 29360, 57570, 100030, 166790, 275580, 461500])  # J/kg aire seco
     Cp_default = 4186       # calor específico del agua, J/(kg °C)
     temp_unit = "°C"
-    enthalpy_unit = "J/kg aire seco"
-    flow_unit = "kg/(tiempo área)"
+    enthalpy_unit = "J/kg aire seco" # Especificado "aire seco"
+    flow_unit = "kg/(s m²)" # Especificación de unidades de flujo de agua y aire
     length_unit = "m"
     h_temp_ref = 0 # Referencia para °C
     h_latent_ref = 2501e3 # A 0°C, J/kg
     h_cp_air_dry = 1005 # J/kg°C
     h_cp_vapor = 1880 # J/kg°C (puede variar un poco)
+    kya_unit = "kg/(s m² DY)" # Especificación de unidades de KYa
+    cp_unit = "J/(kg agua °C)" # Especificación de unidades de Cp
+    Y_unit = "kg agua/kg aire seco" # Especificación de unidades de Y
 
 # Función para calcular entalpía del aire húmedo (adaptada para ambos sistemas)
 def calcular_entalpia_aire(t, Y, temp_ref, latent_ref, cp_air_dry, cp_vapor):
@@ -66,10 +72,10 @@ tfin = st.sidebar.number_input(f'Temperatura de entrada del agua (tfin, {temp_un
 tini = st.sidebar.number_input(f'Temperatura de salida del agua (tini, {temp_unit})', value=85.0, format="%.2f")
 tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
 tw1 = st.sidebar.number_input(f'Bulbo húmedo del aire a la entrada (tw1, {temp_unit})', value=76.0, format="%.2f")
-Y1 = st.sidebar.number_input('Humedad absoluta del aire a la entrada (Y1, kg vapor/kg aire seco)', value=0.016, format="%.5f")
+Y1 = st.sidebar.number_input(f'Humedad absoluta del aire a la entrada (Y1, {Y_unit})', value=0.016, format="%.5f")
 P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f")
-KYa = st.sidebar.number_input('Coef. volumétrico de transferencia de materia (KYa)', value=850.0, format="%.2f")
-Cp = st.sidebar.number_input(f'Calor específico del agua (Cp, {Cp_default} por defecto)', value=Cp_default, format="%.2f")
+KYa = st.sidebar.number_input(f'Coef. volumétrico de transferencia de materia (KYa, {kya_unit})', value=850.0, format="%.2f")
+Cp = st.sidebar.number_input(f'Calor específico del agua (Cp, {cp_unit})', value=Cp_default, format="%.2f")
 
 # Botón para ejecutar el cálculo (opcional, Streamlit recalcula en cada cambio de input)
 # He comentado esta sección ya que Streamlit recalcula automáticamente con los cambios de input
