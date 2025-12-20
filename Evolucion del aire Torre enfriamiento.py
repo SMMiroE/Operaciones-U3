@@ -489,7 +489,7 @@ try:
 
     # Añadir la línea de operación con Gs_min
     # Esta línea va desde el Hini (entrada de aire) hasta el Hfin_min_calculated (salida de aire con Gs_min)
-    ax.plot([tini, tfin], [Hini, Hfin_min], 'g--', label=f'Línea de operación con Gs_min ({temp_unit})', linewidth=1.5)
+    # ax.plot([tini, tfin], [Hini, Hfin_min], 'g--', label=f'Línea de operación con Gs_min ({temp_unit})', linewidth=1.5)
     
     # Añadir un marcador para el punto de pellizco
     # H_pinch_value es la entalpía en la curva de equilibrio en t_pinch_for_Gs_min
