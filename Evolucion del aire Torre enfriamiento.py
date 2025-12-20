@@ -120,32 +120,7 @@ def humidity_ratio_from_RH(t_db, RH_percent, P_atm, props):
 def build_equilibrium_functions(teq, Heq_data):
     """
     Construye:
-    - H_star_spline: curva de equilibrio suave para cálculos generales
+    - H_star_spline: curva de equilibrio suave (cúbica) para Mickley e integración
     - H_star_lin: versión lineal para el cálculo robusto de Gs_min
     """
-    H_star_spline = interp1d(teq, Heq_data, kind='cubic', fill_value='extrapolate')
-    H_star_lin = interp1d(teq, Heq_data, kind='linear', fill_value='extrapolate')
-    tck = splrep(teq, Heq_data, k=3)
-
-    def dH_star_dt(T):
-        T_clip = np.clip(T, teq.min(), teq.max())
-        return splev(T_clip, tck, der=1)
-
-    return H_star_spline, H_star_lin, dH_star_dt
-
-
-def compute_min_air_flow(L, Cp_water, H_ini, tini, tfin, teq, H_star_lin):
-    """
-    Calcula flujo mínimo de aire seco (Gs_min) y el pinch, imponiendo que:
-    - H_line(T) se mantenga por debajo de H*(T) en T = tfin.
-    - Se usa H* lineal para evitar artefactos de la spline.
-    """
-    if tini >= tfin:
-        raise ValueError(
-            "La temperatura de salida del agua (tini) debe ser menor que la de entrada (tfin) para calcular el flujo mínimo."
-        )
-
-    # Curva de equilibrio en la entrada caliente del agua
-    H_eq_tfin = float(H_star_lin(tfin))
-
-    # Rango de búsqueda
+    H_star_spline = interp1d(teq, Heq_data, kind='cubic', fill_value
