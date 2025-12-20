@@ -493,7 +493,7 @@ try:
     
     # Añadir un marcador para el punto de pellizco
     # H_pinch_value es la entalpía en la curva de equilibrio en t_pinch_for_Gs_min
-    ax.plot(t_pinch_for_Gs_min, H_pinch_value, 'go', markersize=8, label='Punto de Pellizco (Pinch Point)')
+    # ax.plot(t_pinch_for_Gs_min, H_pinch_value, 'go', markersize=8, label='Punto de Pellizco (Pinch Point)')
 
 
     # Dibujo del triángulo inicial
