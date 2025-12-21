@@ -485,7 +485,7 @@ with st.expander("📚 Ver Condiciones de operacion, restricciones y metodologí
     st.latex(r"\frac{dH}{dT_G} = \frac{H^* - H}{T_w - T_G}")
     st.write("Esto permite obtener la **Humedad Absoluta de salida ($Y_2$)** y la entalpía final.")
 
-    st.markdown("#### 3. Integración de la Torre (Modelo de Merkel)")
+    st.markdown("#### 3. Altura del relleno Z")
     st.write("""
     **Número de Unidades de Transferencia ($N_{toG}$):** 
     """)
