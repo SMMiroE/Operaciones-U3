@@ -441,18 +441,7 @@ try:
     st.write(f"💧 **Agua de Reposición (Lrep):** {Lrep:.2f} {flow_unit} (aprox. {porcentaje_evap:.2f}% del flujo)")
     
     st.markdown("---")
-    # --- PARTE 2: Parámetros de Diseño y Dimensionamiento ---
-    st.markdown("#### 🏗️ Parámetros de Diseño")
-    
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Altura Total (Z)", f"{Z_total:.2f} {length_unit}")
-    m2.metric("NtoG", f"{NtoG:.2f}")
-    m3.metric("HtoG", f"{HtoG:.2f} {length_unit}")
-
-    # Agua evaporada en una métrica destacada
-    st.metric("Agua de Reposición (Lrep)", f"{Lrep:.2f} {flow_unit}", delta=f"{(Lrep/L)*100:.2f}% del flujo de agua", delta_color="inverse")
-
-    st.markdown("---")
+   
     # ==================== GRÁFICO FINAL ====================
     st.subheader('Diagrama de Entalpía-Temperatura')
 
