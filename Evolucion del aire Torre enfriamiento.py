@@ -451,56 +451,6 @@ try:
     ax.set_ylim(min(Hini, min(Heq_data)) - 10, max(Hfin, max(Heq_data)) + 30)
 
     st.pyplot(fig)
-# ==================== SECCIÓN DE FUNDAMENTOS Y METODOLOGÍA ====================
-with st.expander("📚 Ver Premisas de Diseño y Metodología de Cálculo"):
-    
-    st.markdown("### 📋 Premisas de Cálculo")
-    st.info("""
-    El simulador opera bajo las siguientes condiciones ideales y simplificaciones:
-    1. **Estado Estacionario:** Las propiedades no varían con el tiempo.
-    2. **Operación Adiabática:** El intercambio térmico ocurre exclusivamente entre el agua y el aire.
-    3. **Resistencia Controlante:** Se asume que toda la resistencia a la transferencia reside en la fase gaseosa.
-    4. **L/G Constante:** El flujo de agua ($L$) se considera constante para el balance de energía (evaporación < 2%).
-    5. **Calor Específico ($C_{pw}$) Constante:** Se asume un valor fijo en el rango de temperaturas de operación.
-    6. **Equilibrio en la Interfaz:** El aire en la interfaz está saturado a la temperatura del agua local ($H^*$).
-    """)
 
-    st.markdown("---")
-    st.markdown("### 🛠️ Metodología de Cálculo")
-    
-    st.markdown("#### 1. Flujo Mínimo de Aire ($G_{s,min}$)")
-    st.write("""
-    Se determina mediante la **Pendiente Máxima ($m_{max}$)** de la Línea de Operación. 
-    El algoritmo busca la tangencia entre la recta que nace en $(T_{w,out}, H_{in})$ y la curva de equilibrio.
-    - Si la tangencia es interna, se identifica el **Punto de Pinch**.
-    - Si no hay tangencia interna, el límite se establece en la cabeza de la torre ($T_{w,in}$).
-    """)
-
-    st.markdown("#### 2. Trayectoria del Aire (Método de Mickley)")
-    st.write("""
-    Se calcula paso a paso la evolución de la entalpía ($H$) y temperatura del aire ($T_G$) resolviendo la relación:
-    """)
-    st.latex(r"\frac{dH}{dT_G} = \frac{H^* - H}{T_w - T_G}")
-    st.write("Esto permite obtener la **Humedad Absoluta de salida ($Y_2$)** y la entalpía final.")
-
-    st.markdown("#### 3. Integración de la Torre (Modelo de Merkel)")
-    st.write("""
-    **Número de Unidades de Transferencia ($N_{toG}$):** Se obtiene integrando la fuerza impulsora de entalpía a lo largo de la torre mediante la regla de los trapecios:
-    """)
-    st.latex(r"N_{toG} = \int_{H_{in}}^{H_{out}} \frac{dH}{H^* - H}")
-    
-    st.write("""
-    **Altura de la Unidad de Transferencia ($H_{toG}$):** Relaciona el flujo de aire con la capacidad de transferencia del empaque:
-    """)
-    st.latex(r"H_{toG} = \frac{G_s}{K_y a}")
-
-    st.write("""
-    **Altura Total ($Z$):** Resultado final del diseño.
-    """)
-    st.latex(r"Z = H_{toG} \times N_{toG}")
-
-    st.markdown("#### 4. Balance de Masa (Agua de Reposición)")
-    st.write("Se calcula a partir de la diferencia de humedades absolutas entre la entrada y la salida:")
-    st.latex(r"L_{rep} = G_s \cdot (Y_2 - Y_1)")
 except Exception as e:
     st.error(f"Ha ocurrido un error en los cálculos. Por favor, revise los datos de entrada. Detalle del error: {e}")
