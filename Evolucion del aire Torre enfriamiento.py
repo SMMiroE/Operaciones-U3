@@ -194,7 +194,7 @@ try:
     # Versión lineal para cálculo robusto de Gs_min
     H_star_lin = interp1d(teq, Heq_data, kind='linear', fill_value='extrapolate')
 
-# ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (TANGENCIA ESTRICTA) ====================
+# ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (CON RESTRICCIÓN FÍSICA) ====================
     st.subheader('Cálculo del Flujo Mínimo de Aire')
 
     # Variables de salida inicializadas por seguridad
@@ -207,51 +207,59 @@ try:
         t_start = tG1
         H_start = Hini
         
-        # Definimos el rango de temperaturas para chequear que no haya cruce
-        t_rango_check = np.linspace(min(t_start, tini), tfin + 5, 500)
+        # 1. Definimos el rango de búsqueda matemática (amplio para el optimizador)
+        t_rango_check = np.linspace(tini - 5, tfin + 10, 1000)
 
-        # Función objetivo: Queremos que la distancia MÍNIMA entre H_equilibrio y H_operacion sea 0
-        # Si la distancia mínima es > 0, la línea no toca. Si es < 0, la línea corta.
         def objetivo_tangencia(m):
             h_op = H_start + m * (t_rango_check - t_start)
             h_eq = H_star_func(t_rango_check)
             distancia_minima = np.min(h_eq - h_op)
-            # Minimizamos el cuadrado de la distancia mínima para que tienda a cero
             return distancia_minima**2
 
         from scipy.optimize import minimize
         
-        # Pendiente inicial aproximada (recta desde aire entrada a agua entrada)
+        # Pendiente inicial aproximada
         m_guess = (H_star_func(tfin) - H_start) / (tfin - t_start)
-        
-        # Optimizamos la pendiente m
         res_m = minimize(objetivo_tangencia, x0=[m_guess], bounds=[(0.01, None)], method='L-BFGS-B')
-        m_max_global = res_m.x[0]
-
-        # Identificamos el punto exacto (T) donde ocurre la tangencia
-        h_op_final = H_start + m_max_global * (t_rango_check - t_start)
-        h_eq_final = H_star_func(t_rango_check)
-        idx_pinch = np.argmin(h_eq_final - h_op_final)
         
-        t_pinch_global = t_rango_check[idx_pinch]
-        H_pinch_global = h_eq_final[idx_pinch]
+        m_tangente = res_m.x[0]
+        
+        # 2. Identificamos dónde ocurre esa tangencia matemática
+        h_op_tangente = H_start + m_tangente * (t_rango_check - t_start)
+        h_eq_check = H_star_func(t_rango_check)
+        idx_pinch = np.argmin(h_eq_check - h_op_tangente)
+        t_pinch_calc = t_rango_check[idx_pinch]
 
-        # Cálculos de flujo
+        # 3. LÓGICA DE RESTRICCIÓN DE RANGO (Cabeza de columna)
+        # Pendiente límite hacia el equilibrio en la entrada de agua (Punto crítico en T_fin)
+        m_tope = (H_star_func(tfin) - H_start) / (tfin - t_start)
+
+        if t_pinch_calc > tfin:
+            # Si la tangencia es fuera de rango, el punto crítico es el tope
+            m_max_global = m_tope
+            t_pinch_global = tfin
+            st.warning("⚠️ Pinch detectado en la cabeza de la columna (T_entrada agua).")
+        else:
+            # Si la tangencia es interna, es el flujo mínimo teórico estricto
+            m_max_global = m_tangente
+            t_pinch_global = t_pinch_calc
+            st.success("✅ Tangencia interna detectada (Pinch intermedio).")
+
+        H_pinch_global = H_star_func(t_pinch_global)
+
+        # 4. Cálculos de flujo final
         Gs_min = (L * Cp_default) / m_max_global
         G_min = Gs_min / (1 - y1)
 
-     
         col_a, col_b, col_c = st.columns(3)
-        #col_a.metric("Pendiente (m)", f"{m_max_global:.3f}")
+        col_a.metric("Pendiente Máx (m)", f"{m_max_global:.3f}")
         col_b.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}")
-        col_c.metric("Gs Mínimo", f"{Gs_min:.1f}")
+        col_c.metric("Gs Mínimo", f"{Gs_min:.1f} kg/h·m²")
 
     except Exception as e:
         st.error(f"Error en la optimización: {e}")
-        # Fallback simple si falla la optimización compleja
         m_max_global = (H_star_func(tfin) - Hini) / (tfin - tG1)
         Gs_min = (L * Cp_default) / m_max_global
-
   
     # ==================== MÉTODO DE MICKLEY ======================
     DH = (Hfin - Hini) / 20
