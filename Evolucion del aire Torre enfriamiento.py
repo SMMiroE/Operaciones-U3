@@ -510,8 +510,8 @@ with st.expander("📚 Ver Premisas de Diseño y Metodología de Cálculo"):
     
     st.markdown("""
     * **Treybal, R. E. (1980).** *Mass-Transfer Operations* (3rd ed.). McGraw-Hill Education. 
-        *(Referencia principal para el desarrollo del Método de Mickley y la relación de transferencia de calor y masa).*
+        
     
     * **Foust, A. S., Wenzel, L. A., Clump, C. W., Maus, L., & Andersen, L. B. (1980).** *Principles of Unit Operations* (2nd ed.). John Wiley & Sons.
-        *(Referencia para los balances de materia y energía aplicados en sistemas de contacto gas-líquido).*
+       
     """)
