@@ -195,7 +195,7 @@ try:
     H_star_lin = interp1d(teq, Heq_data, kind='linear', fill_value='extrapolate')
 
 # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (TANGENCIA ESTRICTA) ====================
-    st.subheader('Cálculo del Flujo Mínimo de Aire (Método de Tangencia)')
+    st.subheader('Cálculo del Flujo Mínimo de Aire')
 
     # Variables de salida inicializadas por seguridad
     t_pinch_global = tini
@@ -240,7 +240,7 @@ try:
         Gs_min = (L * Cp_default) / m_max_global
         G_min = Gs_min / (1 - y1)
 
-        st.success("✅ Tangencia calculada: La línea de operación de Gs_min no corta la curva.")
+     
         col_a, col_b, col_c = st.columns(3)
         col_a.metric("Pendiente (m)", f"{m_max_global:.3f}")
         col_b.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}")
