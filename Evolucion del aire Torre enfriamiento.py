@@ -194,86 +194,63 @@ try:
     # Versión lineal para cálculo robusto de Gs_min
     H_star_lin = interp1d(teq, Heq_data, kind='linear', fill_value='extrapolate')
 
-    # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (CORREGIDO) ====================
-    st.subheader('Cálculo del Flujo Mínimo de Aire (Método de Tangencia)')
+  # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (OPTIMIZADO) ====================
+st.subheader('Cálculo del Flujo Mínimo de Aire (Método de Tangencia)')
 
-    t_pinch_global = tini
-    H_pinch_global = H_star_func(tini)
-    m_max_global = 0
-    Gs_min = 1.0
-    G_min = 1.0
+try:
+    # Punto de origen: El aire que entra a la torre (base)
+    t_start = tG1
+    H_start = Hini
 
-    try:
-        if tini >= tfin:
-            st.error("Error: tini debe ser menor que tfin.")
-        else:
-            # Punto inicial del AIRE: (tG1, Hini)
-            t_start = tG1
-            H_start = Hini
-            
-            # Rango de búsqueda para punto de tangencia: entre max(tini,tG1) y tfin
-            t_min_search = max(tini, tG1, np.min(teq))
-            t_max_search = min(tfin, np.max(teq))
-            t_search_range = np.linspace(t_min_search, t_max_search, 1000)
+    # Definimos la función de error: Diferencia entre la pendiente de la cuerda 
+    # y la pendiente de la tangente (derivada) en la curva de equilibrio.
+    def objetivo_tangencia(t):
+        if abs(t - t_start) < 1e-4: return 1e6
+        # Pendiente de la recta desde el origen al punto (t, H*(t))
+        m_cuerda = (H_star_func(t) - H_start) / (t - t_start)
+        # Pendiente de la curva de equilibrio en t (derivada)
+        m_tangente = dH_star_dt_func_spline(t)
+        return (m_cuerda - m_tangente)**2
 
-            slopes_valid = []
-            
-            for t_pinch in t_search_range:
-                H_star_pinch = float(H_star_func(t_pinch))
-                
-                # Pendiente de la recta desde (tG1, Hini) → (t_pinch, H*(t_pinch))
-                delta_t = t_pinch - t_start
-                if abs(delta_t) < 1e-6:
-                    continue
-                    
-                slope = (H_star_pinch - H_start) / delta_t
-                
-                if slope <= 0:
-                    continue
-                    
-                # VERIFICACIÓN DE TANGENCIA: la recta NO debe cruzar H*(t) entre tG1 y t_pinch
-                t_check = np.linspace(t_start, t_pinch, 50)
-                is_tangent = True
-                
-                for t_check_pt in t_check[1:-1]:  # Excluye extremos
-                    H_line = H_start + slope * (t_check_pt - t_start)
-                    H_star_check = float(H_star_func(t_check_pt))
-                    
-                    # Si la recta está POR ENCIMA de H* → NO es tangente
-                    if H_line > H_star_check + 1e-3:
-                        is_tangent = False
-                        break
-                
-                if is_tangent:
-                    slopes_valid.append((slope, t_pinch, H_star_pinch))
+    # Buscamos el t que minimiza la diferencia de pendientes
+    # El rango de búsqueda debe ser amplio para encontrar la tangencia
+    t_min_search = max(tini, tG1)
+    t_max_search = tfin + 20 # Extendemos un poco por si el pinch es alto
+    
+    from scipy.optimize import minimize_scalar
+    res_pinch = minimize_scalar(objetivo_tangencia, bounds=(t_min_search, t_max_search), method='bounded')
+    
+    t_pinch_opt = res_pinch.x
+    m_max = (H_star_func(t_pinch_opt) - H_start) / (t_pinch_opt - t_start)
+    
+    # IMPORTANTE: El pinch también puede ocurrir simplemente en la salida del agua (tfin)
+    # si la curva no es lo suficientemente cóncava. Comparamos:
+    m_tfin = (H_star_func(tfin) - H_start) / (tfin - t_start)
+    
+    if m_tfin > m_max:
+        m_max = m_tfin
+        t_pinch_opt = tfin
 
-            if slopes_valid:
-                # PENDIENTE MÁXIMA = recta tangente con menor Gs_min
-                m_max, t_pinch, H_pinch = max(slopes_valid, key=lambda x: x[0])
-                
-                Gs_min = (L * Cp_default) / m_max
-                G_min = Gs_min / (1 - y1)
-                
-                # Variables globales para gráfico
-                t_pinch_global = t_pinch
-                H_pinch_global = H_pinch
-                m_max_global = m_max
+    H_pinch_opt = H_star_func(t_pinch_opt)
+    
+    # Cálculo de flujos mínimos
+    Gs_min = (L * Cp_default) / m_max
+    G_min = Gs_min / (1 - y1)
 
-              
-                st.write(f"  - **Punto inicial aire**: tG1 = {t_start:.1f} {temp_unit}, H1 = {H_start:.1f} {enthalpy_unit}")
-                st.write(f"  - **Punto de pellizco**: t_pinch = **{t_pinch:.2f}** {temp_unit}, H* = **{H_pinch:.2f}** {enthalpy_unit}")
-                st.write(f"  - **Pendiente tangente**: m_max = **{m_max:.3f}** {enthalpy_unit}/{temp_unit}")
-                st.write(f"  - **Gs_min**: **{Gs_min:.1f}** {flow_unit.replace('aire', 'aire seco')}")
-                st.write(f"  - **G_min**: **{G_min:.1f}** {flow_unit}")
-                st.write(f"  - **Relación actual**: G/G_min = **{G/G_min:.2f}**")
+    # Actualizamos variables globales para el gráfico
+    t_pinch_global = t_pinch_opt
+    H_pinch_global = H_pinch_opt
+    m_max_global = m_max
 
-                if G < G_min * 1.05:
-                    st.warning(f"⚠️ Flujo G insuficiente (G/G_min = {G/G_min:.2f}).")
-            else:
-                st.warning("⚠️ No se encontraron rectas tangentes válidas. Usando aproximación en tini.")
+    st.success("✅ Punto de pellizco calculado correctamente")
+    col1, col2 = st.columns(2)
+    col1.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}")
+    col1.metric("Pendiente Crítica", f"{m_max:.3f}")
+    col2.metric("Gs Mínimo", f"{Gs_min:.1f} {flow_unit}")
+    col2.metric("G Mínimo", f"{G_min:.1f} {flow_unit}")
 
-    except Exception as e:
-        st.error(f"Error en cálculo Gs_min: {e}")
+except Exception as e:
+    st.error(f"Error en el cálculo de tangencia: {e}")
 
     # ==================== MÉTODO DE MICKLEY ======================
     DH = (Hfin - Hini) / 20
