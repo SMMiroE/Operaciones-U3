@@ -194,68 +194,63 @@ try:
     # Versión lineal para cálculo robusto de Gs_min
     H_star_lin = interp1d(teq, Heq_data, kind='linear', fill_value='extrapolate')
 
- # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (OPTIMIZADO) ====================
-    st.subheader('Cálculo del Flujo Mínimo de Aire (Método de Tangencia)')
+# ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (TANGENCIA ESTRICTA) ====================
+st.subheader('Cálculo del Flujo Mínimo de Aire (Método de Tangencia)')
 
-    # Inicializamos variables para evitar errores si el cálculo falla
-    t_pinch_global = tini
-    H_pinch_global = H_star_func(tini)
-    m_max_global = 0.1
-    Gs_min = 0.0
-    G_min = 0.0
+try:
+    t_start = tG1
+    H_start = Hini
 
-    try:
-        # El aire entra a la torre en (tG1, Hini)
-        t_start = tG1
-        H_start = Hini
+    # Definimos la función para la línea de operación dada una pendiente 'm'
+    def h_operacion(t, m):
+        return H_start + m * (t - t_start)
 
-        # Función para encontrar el punto donde la pendiente es tangente
-        # Buscamos minimizar la diferencia entre la pendiente de la cuerda y la derivada
-        def objetivo_tangencia(t):
-            if abs(t - t_start) < 1e-3: return 1e6
-            m_cuerda = (H_star_func(t) - H_start) / (t - t_start)
-            m_tangente = dH_star_dt_func_spline(t)
-            return (m_cuerda - m_tangente)**2
+    # Función para verificar si una pendiente 'm' es válida (no corta la curva)
+    def es_valida(m, t_rango):
+        h_op = h_operacion(t_rango, m)
+        h_eq = H_star_func(t_rango)
+        # Retorna True si la línea de operación siempre está por debajo o igual a la de equilibrio
+        return np.all(h_op <= h_eq + 1e-3)
 
-        from scipy.optimize import minimize_scalar
-        
-        # Rango de búsqueda: desde la salida del agua hasta la entrada + margen
-        t_min_s = max(tini, tG1)
-        t_max_s = tfin + 15
-        
-        res_pinch = minimize_scalar(objetivo_tangencia, bounds=(t_min_s, t_max_s), method='bounded')
-        
-        t_pinch_opt = res_pinch.x
-        m_tangente_opt = (H_star_func(t_pinch_opt) - H_start) / (t_pinch_opt - t_start)
-        
-        # Caso 2: El pinch puede ser simplemente la cuerda hacia el punto de entrada de agua (tfin)
-        m_tfin = (H_star_func(tfin) - H_start) / (tfin - t_start)
-        
-        # La pendiente máxima define el flujo mínimo (m = L*Cp/Gs)
-        if m_tfin > m_tangente_opt:
-            m_max_global = m_tfin
-            t_pinch_global = tfin
-        else:
-            m_max_global = m_tangente_opt
-            t_pinch_global = t_pinch_opt
+    # Rango de temperaturas para chequear el cruce
+    t_check = np.linspace(min(t_start, tini), tfin + 5, 500)
 
-        H_pinch_global = H_star_func(t_pinch_global)
-        Gs_min = (L * Cp_default) / m_max_global
-        G_min = Gs_min / (1 - y1)
+    # Buscamos la pendiente MÁXIMA que sea VÁLIDA
+    # Usamos un buscador de raíces para encontrar el límite donde empieza a cortar
+    def objetivo_m(m):
+        h_op = h_operacion(t_check, m)
+        h_eq = H_star_func(t_check)
+        # Queremos que la diferencia mínima (distancia) sea exactamente 0 (tangencia)
+        distancia_minima = np.min(h_eq - h_op)
+        return distancia_minima**2 
 
-        st.success("✅ Punto de pellizco calculado correctamente")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}")
-        c2.metric("Gs Mínimo", f"{Gs_min:.1f} {flow_unit}")
-        c3.metric("Relación L/G máx", f"{(L/Gs_min):.3f}")
+    from scipy.optimize import minimize
+    # Estimación inicial de m (línea recta hasta tfin)
+    m_inicial = (H_star_func(tfin) - H_start) / (tfin - t_start)
+    
+    # Optimizamos la pendiente m para que toque (tangencia)
+    res_m = minimize(objetivo_m, x0=[m_inicial], bounds=[(0.1, None)])
+    m_max_global = res_m.x[0]
 
-    except Exception as e:
-        st.error(f"Error en el cálculo de tangencia: {e}")
-        # Valores de respaldo para que el código no se rompa
-        m_max_global = (H_star_func(tfin) - Hini) / (tfin - tG1)
-        Gs_min = (L * Cp_default) / m_max_global
+    # Ahora buscamos EN QUÉ TEMPERATURA ocurre esa tangencia (el punto de pinch)
+    distancias = H_star_func(t_check) - h_operacion(t_check, m_max_global)
+    idx_pinch = np.argmin(distancias)
+    t_pinch_global = t_check[idx_pinch]
+    H_pinch_global = H_star_func(t_pinch_global)
 
-    # ==================== MÉTODO DE MICKLEY ======================
+    # Resultados finales
+    Gs_min = (L * Cp_default) / m_max_global
+    G_min = Gs_min / (1 - y1)
+
+    st.success("✅ Tangencia calculada mediante optimización de pendiente")
+    c1, c2 = st.columns(2)
+    c1.metric("Pendiente Crítica (m)", f"{m_max_global:.4f}")
+    c2.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}")
+    
+    st.write(f"**Gs Mínimo:** {Gs_min:.2f} | **G Mínimo:** {G_min:.2f}")
+
+except Exception as e:
+    st.error(f"Error en la optimización de tangencia: {e}")
     # ==================== MÉTODO DE MICKLEY ======================
     DH = (Hfin - Hini) / 20
 
