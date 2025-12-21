@@ -401,33 +401,46 @@ try:
     Z_total = HtoG * NtoG
     Lrep = Gs * (Y_air[-1] - Y1)
 
-  # ==================== SECCIÓN DE RESULTADOS UNIFICADA ====================
-    st.header('📊 Resultados de la Simulación')
+  # ==================== SECCIÓN DE RESULTADOS ESTILIZADA ====================
+    st.markdown("### 📊 Resultados de la Simulación")
     
-    # --- PARTE 1: Puntos de Operación (Termodinámica) ---
-    st.markdown("#### 🌡️ Condiciones en los Extremos de la Torre")
-    col_ext1, col_ext2 = st.columns(2)
+    # --- PARTE 1: Puntos de Operación ---
+    st.markdown("##### 🌡️ Condiciones en los Extremos")
     
-    with col_ext1:
-        st.subheader("🔝 Cabeza (Salida Aire / Entrada Agua)")
-        st.write(f"**Agua:**")
-        st.write(f"- Temperatura: {tfin:.2f} {temp_unit}")
-        st.write(f"**Aire:**")
-        st.write(f"- Temperatura ($t_{{G2}}$): {t_air[-1]:.2f} {temp_unit}")
-        st.write(f"- Entalpía ($H_2$): {H_air[-1]:.2f} {enthalpy_unit}")
-        st.write(f"- Humedad ($Y_2$): {Y_air[-1]:.5f} {Y_unit}")
+    # Usamos un contenedor con borde para agrupar los datos
+    with st.container():
+        col_ext1, col_ext2 = st.columns(2)
+        
+        with col_ext1:
+            st.markdown("**🔝 Cabeza (Salida Aire / Entrada Agua)**")
+            st.write(f"💧 **Agua:** {tfin:.2f} {temp_unit}")
+            st.write(f"💨 **Aire ($t_{{G2}}$):** {t_air[-1]:.2f} {temp_unit}")
+            st.write(f"📏 **Humedad ($Y_2$):** {Y_air[-1]:.5f} {Y_unit}")
+            st.write(f"🔥 **Entalpía ($H_2$):** {H_air[-1]:.2f} {enthalpy_unit}")
 
-    with col_ext2:
-        st.subheader("Base (Entrada Aire / Salida Agua)")
-        st.write(f"**Agua:**")
-        st.write(f"- Temperatura: {tini:.2f} {temp_unit}")
-        st.write(f"**Aire:**")
-        st.write(f"- Temperatura ($t_{{G1}}$): {tG1:.2f} {temp_unit}")
-        st.write(f"- Entalpía ($H_1$): {Hini:.2f} {enthalpy_unit}")
-        st.write(f"- Humedad ($Y_1$): {Y1:.5f} {Y_unit}")
+        with col_ext2:
+            st.markdown("**Base (Entrada Aire / Salida Agua)**")
+            st.write(f"💧 **Agua:** {tini:.2f} {temp_unit}")
+            st.write(f"💨 **Aire ($t_{{G1}}$):** {tG1:.2f} {temp_unit}")
+            st.write(f"📏 **Humedad ($Y_1$):** {Y1:.5f} {Y_unit}")
+            st.write(f"🔥 **Entalpía ($H_1$):** {Hini:.2f} {enthalpy_unit}")
 
     st.markdown("---")
 
+    # --- PARTE 2: Parámetros de Diseño ---
+    st.markdown("##### 🏗️ Dimensionamiento y Diseño")
+    
+    # Métricas más compactas
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Altura Total (Z)", f"{Z_total:.2f} {length_unit}")
+    m2.metric("NtoG", f"{NtoG:.2f}")
+    m3.metric("HtoG", f"{HtoG:.2f} {length_unit}")
+
+    # Información de reposición con estilo más discreto
+    porcentaje_evap = (Lrep/L)*100
+    st.write(f"💧 **Agua de Reposición (Lrep):** {Lrep:.2f} {flow_unit} (aprox. {porcentaje_evap:.2f}% del flujo)")
+    
+    st.markdown("---")
     # --- PARTE 2: Parámetros de Diseño y Dimensionamiento ---
     st.markdown("#### 🏗️ Parámetros de Diseño")
     
