@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # ==================== TÍTULO DE LA APLICACIÓN ====================
-st.title('🌡️ Simulacion de Torres de Enfriamiento OU3 FICA-UNSL ❄️')
+st.title('🌡️ Simulación de Torres de Enfriamiento OU3 FICA-UNSL ❄️')
 st.write('Esta aplicación calcula la evolución del aire en una torre de enfriamiento y estima sus parámetros de diseño.')
 
 # ==================== DATOS DE EQUILIBRIO (MANTENER FIJOS O PERMITIR SELECCIÓN) ====================
@@ -544,7 +544,8 @@ with st.expander("📚 Ver Condiciones de operacion, restricciones y metodologí
         
     
     * **Foust, A. S., Wenzel, L. A., Clump, C. W., Maus, L., & Andersen, L. B. (1980).** *Principles of Unit Operations* (2nd ed.). John Wiley & Sons.
-       
+    * **Streamlit Inc. (2025). **Streamlit (Version 1.x) [Software]. https://streamlit.io
+    * **Harris, C. R., et al. (2020). Array programming with NumPy. Nature, 585(7825), 357–362.
     """)
     
 st.markdown("### 🎓 ")
