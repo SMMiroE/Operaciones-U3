@@ -517,12 +517,15 @@ with st.expander("📚 Ver Condiciones de operacion, restricciones y metodologí
   
    
         st.markdown("### 🎓 Créditos y Autoría")
-        
-        st.write("**Asignatura:** Operaciones Unitarias III")
-        st.write("**Institución:** Facultad de Ingeniería y Ciencias Agropecuarias (FICA) - Universidad Nacional de San Luis.")
-        
-        st.write("**Cita sugerida (APA):**")
-        st.markdown("_Apellido, N. (2025). Simulador de Torres de Enfriamiento - Método de Mickley y Merkel (v1.0) [Software]. Villa Mercedes, San Luis: FICA-UNSL._")
-        
-        st.write("Este software es un recurso de acceso abierto para fines académicos y de investigación en el marco de la Universidad Nacional de San Luis.")
+    
+    st.write("**Asignatura:** Operaciones Unitarias III")
+    st.write("**Institución:** Facultad de Ingeniería y Ciencias Agropecuarias (FICA) - Universidad Nacional de San Luis.")
+    
+    st.write("**Cita sugerida (APA):**")
+    st.markdown("_Erdmann, S. M. (2025). Simulador de Torres de Enfriamiento - Método de Mickley y Merkel (v1.0) [Software]. Villa Mercedes, San Luis: FICA-UNSL._")
+    
+    st.write("Este software es un recurso de acceso abierto para fines académicos y de investigación en el marco de la Universidad Nacional de San Luis.")
+    st.caption("Final del reporte de simulación - 2025")
+
+# Línea final fuera del bloque para cerrar la interfaz
 st.markdown("---")
