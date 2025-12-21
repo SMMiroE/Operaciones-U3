@@ -465,3 +465,6 @@ try:
     ax.set_ylim(min(Hini, min(Heq_data)) - 10, max(Hfin, max(Heq_data)) + 30)
 
     st.pyplot(fig)
+
+except Exception as e:
+    st.error(f"Ha ocurrido un error en los cálculos. Por favor, revise los datos de entrada. Detalle del error: {e}")
