@@ -401,7 +401,7 @@ try:
     Z_total = HtoG * NtoG
     Lrep = Gs * (Y_air[-1] - Y1)
 
-   # ==================== SECCIÓN DE RESULTADOS UNIFICADA ====================
+  # ==================== SECCIÓN DE RESULTADOS UNIFICADA ====================
     st.header('📊 Resultados de la Simulación')
     
     # --- PARTE 1: Puntos de Operación (Termodinámica) ---
@@ -409,29 +409,35 @@ try:
     col_ext1, col_ext2 = st.columns(2)
     
     with col_ext1:
-        st.write("**Cabeza (Entrada de Agua):**")
+        st.subheader("🔝 Cabeza (Salida Aire / Entrada Agua)")
+        st.write(f"**Agua:**")
         st.write(f"- Temperatura: {tfin:.2f} {temp_unit}")
-        st.write(f"- Entalpía: {Hfin:.2f} {enthalpy_unit}")
+        st.write(f"**Aire:**")
+        st.write(f"- Temperatura ($t_{{G2}}$): {t_air[-1]:.2f} {temp_unit}")
+        st.write(f"- Entalpía ($H_2$): {H_air[-1]:.2f} {enthalpy_unit}")
+        st.write(f"- Humedad ($Y_2$): {Y_air[-1]:.5f} {Y_unit}")
 
     with col_ext2:
-        st.write("**Base (Salida de Agua):**")
+        st.subheader("Base (Entrada Aire / Salida Agua)")
+        st.write(f"**Agua:**")
         st.write(f"- Temperatura: {tini:.2f} {temp_unit}")
-        st.write(f"- Entalpía: {Hini:.2f} {enthalpy_unit}")
+        st.write(f"**Aire:**")
+        st.write(f"- Temperatura ($t_{{G1}}$): {tG1:.2f} {temp_unit}")
+        st.write(f"- Entalpía ($H_1$): {Hini:.2f} {enthalpy_unit}")
+        st.write(f"- Humedad ($Y_1$): {Y1:.5f} {Y_unit}")
 
     st.markdown("---")
 
     # --- PARTE 2: Parámetros de Diseño y Dimensionamiento ---
-    #st.markdown("#### 🏗️ Parámetros de Diseño")
+    st.markdown("#### 🏗️ Parámetros de Diseño")
     
-    # Usamos métricas para resaltar los valores numéricos importantes
     m1, m2, m3 = st.columns(3)
-    m1.metric("Altura del relleno (Z)", f"{Z_total:.2f} {length_unit}")
+    m1.metric("Altura Total (Z)", f"{Z_total:.2f} {length_unit}")
     m2.metric("NtoG", f"{NtoG:.2f}")
     m3.metric("HtoG", f"{HtoG:.2f} {length_unit}")
 
-    m4, m5 = st.columns(2)
-    m4.metric("Humedad Salida (Y2)", f"{Y_air[-1]:.5f}", help="kg agua / kg aire seco")
-    m5.metric("Agua de Reposición (Lrep)", f"{Lrep:.2f} {flow_unit}")
+    # Agua evaporada en una métrica destacada
+    st.metric("Agua de Reposición (Lrep)", f"{Lrep:.2f} {flow_unit}", delta=f"{(Lrep/L)*100:.2f}% del flujo de agua", delta_color="inverse")
 
     st.markdown("---")
     # ==================== GRÁFICO FINAL ====================
