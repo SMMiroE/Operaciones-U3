@@ -242,7 +242,7 @@ try:
 
      
         col_a, col_b, col_c = st.columns(3)
-        col_a.metric("Pendiente (m)", f"{m_max_global:.3f}")
+        #col_a.metric("Pendiente (m)", f"{m_max_global:.3f}")
         col_b.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}")
         col_c.metric("Gs Mínimo", f"{Gs_min:.1f}")
 
