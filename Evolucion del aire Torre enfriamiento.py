@@ -505,3 +505,13 @@ with st.expander("📚 Ver Premisas de Diseño y Metodología de Cálculo"):
     st.markdown("#### 4. Balance de Masa (Agua de Reposición)")
     st.write("Se calcula a partir de la diferencia de humedades absolutas entre la entrada y la salida:")
     st.latex(r"L_{rep} = G_s \cdot (Y_2 - Y_1)")
+    st.markdown("---")
+    st.markdown("### 📚 Bibliografía Utilizada")
+    
+    st.markdown("""
+    * **Treybal, R. E. (1980).** *Mass-Transfer Operations* (3rd ed.). McGraw-Hill Education. 
+        *(Referencia principal para el desarrollo del Método de Mickley y la relación de transferencia de calor y masa).*
+    
+    * **Foust, A. S., Wenzel, L. A., Clump, C. W., Maus, L., & Andersen, L. B. (1980).** *Principles of Unit Operations* (2nd ed.). John Wiley & Sons.
+        *(Referencia para los balances de materia y energía aplicados en sistemas de contacto gas-líquido).*
+    """)
