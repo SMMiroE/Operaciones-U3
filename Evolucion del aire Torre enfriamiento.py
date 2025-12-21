@@ -7,7 +7,7 @@ from scipy.optimize import fsolve  # Para resolver numéricamente el punto de pe
 
 # ==================== CONFIGURACIÓN DE LA PÁGINA (OPCIONAL) ====================
 st.set_page_config(
-    page_title="Simulacion de Torres de Enfriamiento OU3 FICA-UNSL",
+    page_title="Simulación de Torres de Enfriamiento OU3 FICA-UNSL",
     layout="centered",  # o "wide" para más espacio
     initial_sidebar_state="auto"
 )
@@ -428,20 +428,20 @@ try:
     col_res1, col_res2 = st.columns(2)
 
     with col_res1:
-        st.markdown("##### 🔍 Análisis de Flujo Crítico")
-        st.write(f"📉 **Pendiente Máx (m):** {m_max_global:.3f}")
-        st.write(f"📍 **Temp. Pinch:** {t_pinch_global:.2f} {temp_unit}")
-        st.write(f"🚀 **Gs Mínimo:** {Gs_min:.1f} kg/h·m²")
-        estado_txt = "Interno" if t_pinch_global < tfin else "En Cabeza"
-        st.write(f"📌 **Tipo de Pinch:** {estado_txt}")
+        st.markdown("##### Flujo mínimo de aire")
+        st.write(f"📉**Pendiente Máx (m):** {m_max_global:.3f}")
+        #st.write(f"📍 **Temp. Pinch:** {t_pinch_global:.2f} {temp_unit}")
+        st.write(f"**Gs Mínimo:** {Gs_min:.1f} kg/h·m²")
+        #estado_txt = "Interno" if t_pinch_global < tfin else "En Cabeza"
+        #st.write(f"📌 **Tipo de Pinch:** {estado_txt}")
 
     with col_res2:
-        st.markdown("##### 🏗️ Dimensionamiento del Relleno")
-        st.write(f"📏 **Altura Total (Z):** {Z_total:.2f} {length_unit}")
-        st.write(f"🔢 **NtoG:** {NtoG:.2f}")
-        st.write(f"📐 **HtoG:** {HtoG:.2f} {length_unit}")
+        st.markdown("##### Dimensionamiento del Relleno")
+        st.write(f"🔢**HtoG:** {HtoG:.2f} {length_unit}")
+        st.write(f"🔢**NtoG:** {NtoG:.2f}")
+        st.write(f"**Altura del relleno (Z):** {Z_total:.2f} {length_unit}")
         porcentaje_evap = (Lrep/L)*100
-        st.write(f"💧 **Reposición (Lrep):** {Lrep:.2f} {flow_unit} ({porcentaje_evap:.2f}%)")
+        st.write(f"💧 **Agua de reposición (Lrep):** {Lrep:.2f} {flow_unit} ({porcentaje_evap:.2f}%)")
 
     st.markdown("---")
     # ==================== GRÁFICO FINAL ====================
