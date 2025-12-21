@@ -514,19 +514,17 @@ with st.expander("📚 Ver Condiciones de operacion, restricciones y metodologí
     * **Foust, A. S., Wenzel, L. A., Clump, C. W., Maus, L., & Andersen, L. B. (1980).** *Principles of Unit Operations* (2nd ed.). John Wiley & Sons.
        
     """)
-    # ==================== CRÉDITOS Y CITA DEL SOFTWARE ====================
-st.markdown("---")
-st.markdown(
-    """
-    <div style="text-align: center; color: #555; font-size: 0.9em;">
-        <p><b>Herramienta desarrollada para la asignatura Operaciones Unitarias III</b><br>
-        Facultad de Ingeniería y Ciencias Agropecuarias (FICA) - UNSL</p>
-        
-        <p><b>Cita sugerida (APA):</b><br>
-        <i>[Miro Erdmann, SM]. (2025). Simulador de Torres de Enfriamiento - Método de Mickley y Merkel (Versión 1.0) [Software de computación]. Villa Mercedes, San Luis: FICA-UNSL.</i></p>
-        
-        <p>Este software es de acceso abierto para fines académicos y de investigación en el marco de la Universidad Nacional de San Luis.</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+   st.markdown("---")
+    st.markdown("### 🎓 Créditos y Autoría")
+    
+    st.write("**Asignatura:** Operaciones Unitarias III")
+    st.write("**Institución:** Facultad de Ingeniería y Ciencias Agropecuarias (FICA) - Universidad Nacional de San Luis.")
+    
+    st.markdown("  ") # Espacio pequeño
+    
+    st.write("**Cita sugerida (APA):**")
+    st.markdown("_Apellido, N. (2025). Simulador de Torres de Enfriamiento - Método de Mickley y Merkel (v1.0) [Software]. Villa Mercedes, San Luis: FICA-UNSL._")
+    
+    st.markdown("  ") # Espacio pequeño
+    
+    st.write("Este software es un recurso de acceso abierto para fines académicos y de investigación en el marco de la Universidad Nacional de San Luis.")
