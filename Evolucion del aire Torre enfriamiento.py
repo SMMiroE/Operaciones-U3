@@ -259,7 +259,7 @@ try:
                 H_pinch_global = H_pinch
                 m_max_global = m_max
 
-                st.success("✅ Punto de pellizco calculado correctamente")
+              
                 st.write(f"  - **Punto inicial aire**: tG1 = {t_start:.1f} {temp_unit}, H1 = {H_start:.1f} {enthalpy_unit}")
                 st.write(f"  - **Punto de pellizco**: t_pinch = **{t_pinch:.2f}** {temp_unit}, H* = **{H_pinch:.2f}** {enthalpy_unit}")
                 st.write(f"  - **Pendiente tangente**: m_max = **{m_max:.3f}** {enthalpy_unit}/{temp_unit}")
