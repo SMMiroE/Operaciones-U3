@@ -425,8 +425,8 @@ try:
 
     # Línea tangente del pinch (RECTA ROJA)
     Hfin_min = Hini + m_max_global * (tfin - tG1)
-    ax.plot([tini, t_pinch_global, tfin], 
-            [Hini, H_pinch_global, Hfin_min], 
+    ax.plot([tini, t_pinch_global], 
+            [Hini, H_pinch_global], 
             'r--', linewidth=3, label='Recta tangente (Gs_min)', alpha=0.8)
     ax.plot(t_pinch_global, H_pinch_global, 'ro', markersize=12, label=f'Pinch ({t_pinch_global:.1f}{temp_unit})')
 
