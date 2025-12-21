@@ -421,11 +421,11 @@ try:
     st.markdown("---")
 
     # --- PARTE 2: Parámetros de Diseño y Dimensionamiento ---
-    st.markdown("#### 🏗️ Parámetros de Diseño")
+    #st.markdown("#### 🏗️ Parámetros de Diseño")
     
     # Usamos métricas para resaltar los valores numéricos importantes
     m1, m2, m3 = st.columns(3)
-    m1.metric("Altura Total (Z)", f"{Z_total:.2f} {length_unit}")
+    m1.metric("Altura del relleno (Z)", f"{Z_total:.2f} {length_unit}")
     m2.metric("NtoG", f"{NtoG:.2f}")
     m3.metric("HtoG", f"{HtoG:.2f} {length_unit}")
 
