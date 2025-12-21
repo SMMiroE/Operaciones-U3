@@ -17,7 +17,7 @@ st.title('🌡️ Simulacion de Torres de Enfriamiento OU3 FICA-UNSL ❄️')
 st.write('Esta aplicación calcula la evolución del aire en una torre de enfriamiento y determina sus parámetros de diseño.')
 
 # ==================== DATOS DE EQUILIBRIO (MANTENER FIJOS O PERMITIR SELECCIÓN) ====================
-st.subheader('Datos de la Curva de Equilibrio H*(t)')
+#st.subheader('Datos de la Curva de Equilibrio H*(t)')
 opcion_unidades = st.radio(
     "Seleccione el sistema de unidades:",
     ('Sistema Inglés', 'Sistema Internacional')
