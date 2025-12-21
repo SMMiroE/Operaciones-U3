@@ -479,7 +479,7 @@ with st.expander("📚 Ver Premisas de Diseño y Metodología de Cálculo"):
     - Si no hay tangencia interna, el límite se establece en la cabeza de la torre ($T_{w,in}$).
     """)
 
-    st.markdown("#### 2. Trayectoria del Aire (Método de Mickley)")
+    st.markdown("#### 2. Evolución del Aire (Método de Mickley)")
     st.write("""
     Se calcula paso a paso la evolución de la entalpía ($H$) y temperatura del aire ($T_G$) resolviendo la relación:
     """)
@@ -488,25 +488,25 @@ with st.expander("📚 Ver Premisas de Diseño y Metodología de Cálculo"):
 
     st.markdown("#### 3. Integración de la Torre (Modelo de Merkel)")
     st.write("""
-    **Número de Unidades de Transferencia ($N_{toG}$):** Se obtiene integrando la fuerza impulsora de entalpía a lo largo de la torre mediante la regla de los trapecios:
+    **Número de Unidades de Transferencia ($N_{toG}$):** 
     """)
     st.latex(r"N_{toG} = \int_{H_{in}}^{H_{out}} \frac{dH}{H^* - H}")
     
     st.write("""
-    **Altura de la Unidad de Transferencia ($H_{toG}$):** Relaciona el flujo de aire con la capacidad de transferencia del empaque:
+    **Altura de la Unidad de Transferencia ($H_{toG}$):** 
     """)
     st.latex(r"H_{toG} = \frac{G_s}{K_y a}")
 
     st.write("""
-    **Altura Total ($Z$):** Resultado final del diseño.
+    **Altura del relleno ($Z$):** Resultado final del diseño.
     """)
     st.latex(r"Z = H_{toG} \times N_{toG}")
 
-    st.markdown("#### 4. Balance de Masa (Agua de Reposición)")
+    st.markdown("#### 4. Agua de Reposición")
     st.write("Se calcula a partir de la diferencia de humedades absolutas entre la entrada y la salida:")
     st.latex(r"L_{rep} = G_s \cdot (Y_2 - Y_1)")
     st.markdown("---")
-    st.markdown("### 📚 Bibliografía Utilizada")
+    st.markdown("### 📚 Bibliografía")
     
     st.markdown("""
     * **Treybal, R. E. (1980).** *Mass-Transfer Operations* (3rd ed.). McGraw-Hill Education. 
