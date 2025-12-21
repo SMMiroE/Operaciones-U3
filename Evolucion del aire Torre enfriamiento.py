@@ -514,9 +514,8 @@ with st.expander("📚 Ver Condiciones de operacion, restricciones y metodologí
     * **Foust, A. S., Wenzel, L. A., Clump, C. W., Maus, L., & Andersen, L. B. (1980).** *Principles of Unit Operations* (2nd ed.). John Wiley & Sons.
        
     """)
-   st.markdown("---")
-   st.markdown("---")
-   st.markdown("---")
+  
+   
         st.markdown("### 🎓 Créditos y Autoría")
         
         st.write("**Asignatura:** Operaciones Unitarias III")
@@ -526,3 +525,4 @@ with st.expander("📚 Ver Condiciones de operacion, restricciones y metodologí
         st.markdown("_Apellido, N. (2025). Simulador de Torres de Enfriamiento - Método de Mickley y Merkel (v1.0) [Software]. Villa Mercedes, San Luis: FICA-UNSL._")
         
         st.write("Este software es un recurso de acceso abierto para fines académicos y de investigación en el marco de la Universidad Nacional de San Luis.")
+st.markdown("---")
