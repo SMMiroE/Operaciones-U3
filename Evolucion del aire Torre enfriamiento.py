@@ -204,7 +204,7 @@ try:
     Gs_min = 0.0
 
     try:
-        t_start = tG1
+        t_start = tini
         H_start = Hini
         
         # 1. Definimos el rango de búsqueda matemática (amplio para el optimizador)
