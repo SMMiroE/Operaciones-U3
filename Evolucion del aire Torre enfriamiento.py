@@ -401,16 +401,13 @@ try:
     Z_total = HtoG * NtoG
     Lrep = Gs * (Y_air[-1] - Y1)
 
-  # ==================== SECCIÓN DE RESULTADOS ESTILIZADA ====================
+ # ==================== SECCIÓN DE RESULTADOS ESTILIZADA ====================
     st.markdown("### 📊 Resultados de la Simulación")
     
-    # --- PARTE 1: Puntos de Operación ---
+    # --- PARTE 1: Puntos de Operación (Termodinámica) ---
     st.markdown("##### 🌡️ Condiciones en los Extremos")
-    
-    # Usamos un contenedor con borde para agrupar los datos
     with st.container():
         col_ext1, col_ext2 = st.columns(2)
-        
         with col_ext1:
             st.markdown("**🔝 Cabeza (Salida Aire / Entrada Agua)**")
             st.write(f"💧 **Agua:** {tfin:.2f} {temp_unit}")
@@ -427,21 +424,33 @@ try:
 
     st.markdown("---")
 
-    # --- PARTE 2: Parámetros de Diseño ---
-    st.markdown("##### 🏗️ Dimensionamiento y Diseño")
+    # --- PARTE 2: Análisis del Flujo Mínimo (Pinch) ---
+    st.markdown("##### 🔍 Análisis de Flujo Crítico (Pinch)")
     
-    # Métricas más compactas
+    # Determinamos el mensaje de estado para el pinch
+    estado_pinch = "Punto de Pinch Interno" if t_pinch_global < tfin else "Pinch en Cabeza (Límite Físico)"
+    
+    m_p1, m_p2, m_p3 = st.columns(3)
+    m_p1.metric("Gs Mínimo", f"{Gs_min:.1f} kg/h·m²")
+    m_p2.metric("Pendiente Máx (m)", f"{m_max_global:.3f}")
+    m_p3.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}", help=estado_pinch)
+    
+    st.write(f"💡 **Estado:** {estado_pinch}")
+    st.markdown("---")
+
+    # --- PARTE 3: Dimensionamiento y Diseño ---
+    st.markdown("##### 🏗️ Dimensionamiento del Relleno")
+    
     m1, m2, m3 = st.columns(3)
     m1.metric("Altura Total (Z)", f"{Z_total:.2f} {length_unit}")
     m2.metric("NtoG", f"{NtoG:.2f}")
     m3.metric("HtoG", f"{HtoG:.2f} {length_unit}")
 
-    # Información de reposición con estilo más discreto
+    # Información de reposición
     porcentaje_evap = (Lrep/L)*100
-    st.write(f"💧 **Agua de Reposición (Lrep):** {Lrep:.2f} {flow_unit} (aprox. {porcentaje_evap:.2f}% del flujo)")
+    st.write(f"💧 **Agua de Reposición (Lrep):** {Lrep:.2f} {flow_unit} ({porcentaje_evap:.2f}% del flujo total)")
     
     st.markdown("---")
-   
     # ==================== GRÁFICO FINAL ====================
     st.subheader('Diagrama de Entalpía-Temperatura')
 
