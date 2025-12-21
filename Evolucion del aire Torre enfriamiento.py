@@ -7,14 +7,14 @@ from scipy.optimize import fsolve  # Para resolver numéricamente el punto de pe
 
 # ==================== CONFIGURACIÓN DE LA PÁGINA (OPCIONAL) ====================
 st.set_page_config(
-    page_title="Simulación de Torres de Enfriamiento OU3 FICA-UNSL",
+    page_title="Torres de Enfriamiento OU3 FICA-UNSL",
     layout="centered",  # o "wide" para más espacio
     initial_sidebar_state="auto"
 )
 
 # ==================== TÍTULO DE LA APLICACIÓN ====================
 st.title('🌡️ Simulacion de Torres de Enfriamiento OU3 FICA-UNSL ❄️')
-st.write('Esta aplicación calcula la evolución del aire en una torre de enfriamiento y determina sus parámetros de diseño.')
+st.write('Esta aplicación calcula la evolución del aire en una torre de enfriamiento y estima sus parámetros de diseño.')
 
 # ==================== DATOS DE EQUILIBRIO (MANTENER FIJOS O PERMITIR SELECCIÓN) ====================
 #st.subheader('Datos de la Curva de Equilibrio H*(t)')
@@ -405,21 +405,21 @@ try:
     st.markdown("### 📊 Resultados de la Simulación")
     
     # --- PARTE 1: Puntos de Operación ---
-    st.markdown("##### 🌡️ Condiciones en los Extremos")
+    st.markdown("##### 🌡️ Condiciones en los extremos de la torre")
     col_ext1, col_ext2 = st.columns(2)
     with col_ext1:
-        st.markdown("**🔝 Cabeza (Salida Aire / Entrada Agua)**")
-        st.write(f"💧 **Agua:** {tfin:.2f} {temp_unit}")
-        st.write(f"💨 **Aire ($t_{{G2}}$):** {t_air[-1]:.2f} {temp_unit}")
-        st.write(f"📏 **Humedad ($Y_2$):** {Y_air[-1]:.5f} {Y_unit}")
-        st.write(f"🔥 **Entalpía ($H_2$):** {H_air[-1]:.2f} {enthalpy_unit}")
+        st.markdown("**Cabeza**")
+        st.write(f"🌡️ **Temperatura del agua:** {tfin:.2f} {temp_unit}")
+        st.write(f"🌡️ **Temperatura del aire($t_{{G2}}$):** {t_air[-1]:.2f} {temp_unit}")
+        st.write(f"💧 **Humedad del aire ($Y_2$):** {Y_air[-1]:.5f} {Y_unit}")
+        st.write(f"🔥 **Entalpía del aire ($H_2$):** {H_air[-1]:.2f} {enthalpy_unit}")
 
     with col_ext2:
-        st.markdown("**Base (Entrada Aire / Salida Agua)**")
-        st.write(f"💧 **Agua:** {tini:.2f} {temp_unit}")
-        st.write(f"💨 **Aire ($t_{{G1}}$):** {tG1:.2f} {temp_unit}")
-        st.write(f"📏 **Humedad ($Y_1$):** {Y1:.5f} {Y_unit}")
-        st.write(f"🔥 **Entalpía ($H_1$):** {Hini:.2f} {enthalpy_unit}")
+        st.markdown("**Base**")
+        st.write(f"🌡️ **Temperatura del agua:** {tini:.2f} {temp_unit}")
+        st.write(f"🌡️ **Temperatura del aire ($t_{{G1}}$):** {tG1:.2f} {temp_unit}")
+        st.write(f"💧 **Humedad del aire ($Y_1$):** {Y1:.5f} {Y_unit}")
+        st.write(f"🔥 **Entalpía del aire ($H_1$):** {Hini:.2f} {enthalpy_unit}")
 
     st.markdown("---")
 
@@ -431,7 +431,7 @@ try:
         st.markdown("##### Flujo mínimo de aire")
         st.write(f"📉**Pendiente Máx (m):** {m_max_global:.3f}")
         #st.write(f"📍 **Temp. Pinch:** {t_pinch_global:.2f} {temp_unit}")
-        st.write(f"**Gs Mínimo:** {Gs_min:.1f} kg/h·m²")
+        st.write(f"🌬️**Gs Mínimo:** {Gs_min:.1f} kg/h·m²")
         #estado_txt = "Interno" if t_pinch_global < tfin else "En Cabeza"
         #st.write(f"📌 **Tipo de Pinch:** {estado_txt}")
 
@@ -439,9 +439,10 @@ try:
         st.markdown("##### Dimensionamiento del Relleno")
         st.write(f"🔢**HtoG:** {HtoG:.2f} {length_unit}")
         st.write(f"🔢**NtoG:** {NtoG:.2f}")
-        st.write(f"**Altura del relleno (Z):** {Z_total:.2f} {length_unit}")
+        st.write(f"📏**Altura del relleno (Z):** {Z_total:.2f} {length_unit}")
         porcentaje_evap = (Lrep/L)*100
-        st.write(f"💧 **Agua de reposición (Lrep):** {Lrep:.2f} {flow_unit} ({porcentaje_evap:.2f}%)")
+    
+    st.write(f"💧 **Agua de reposición (Lrep):** {Lrep:.2f} {flow_unit} ({porcentaje_evap:.2f}%)")
 
     st.markdown("---")
     # ==================== GRÁFICO FINAL ====================
