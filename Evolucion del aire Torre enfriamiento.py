@@ -455,17 +455,16 @@ try:
 except Exception as e:
     st.error(f"Ha ocurrido un error en los cálculos. Por favor, revise los datos de entrada. Detalle del error: {e}")
     # ==================== SECCIÓN DE FUNDAMENTOS Y METODOLOGÍA ====================
-with st.expander("📚 Ver Premisas de Diseño y Metodología de Cálculo"):
+with st.expander("📚 Ver Condiciones de operacion, restricciones y metodología de cálculo"):
     
-    st.markdown("### 📋 Premisas de Cálculo")
+    st.markdown("### 📋 Condiciones y restricciones")
     st.info("""
-    El simulador opera bajo las siguientes condiciones ideales y simplificaciones:
-    1. **Estado Estacionario:** Las propiedades no varían con el tiempo.
-    2. **Operación Adiabática:** El intercambio térmico ocurre exclusivamente entre el agua y el aire.
-    3. **Resistencia Controlante:** Se asume que toda la resistencia a la transferencia reside en la fase gaseosa.
-    4. **L/G Constante:** El flujo de agua ($L$) se considera constante para el balance de energía (evaporación < 2%).
-    5. **Calor Específico ($C_{pw}$) Constante:** Se asume un valor fijo en el rango de temperaturas de operación.
-    6. **Equilibrio en la Interfaz:** El aire en la interfaz está saturado a la temperatura del agua local ($H^*$).
+    1. **Estado Estacionario** 
+    2. **Operación Adiabática** 
+    3. **Resistencia Controlante en la fase gas** 
+    4. **L/G Constante** 
+    5. **Calor Específico del agua ($C_{pw}$) constante** 
+    6. **Equilibrio en la interfase** 
     """)
 
     st.markdown("---")
