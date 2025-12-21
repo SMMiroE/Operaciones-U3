@@ -515,6 +515,7 @@ with st.expander("📚 Ver Condiciones de operacion, restricciones y metodologí
        
     """)
    st.markdown("---")
+   st.markdown("---")
     st.markdown("### 🎓 Créditos y Autoría")
     
     st.write("**Asignatura:** Operaciones Unitarias III")
