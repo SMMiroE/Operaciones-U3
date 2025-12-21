@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # ==================== TÍTULO DE LA APLICACIÓN ====================
-st.title('🌡️ Simulación de Torres de Enfriamiento - Método de Mickley ❄️')
+st.title('🌡️ Simulacion de Torres de Enfriamiento OU3 FICA-UNSL ❄️')
 st.write('Esta aplicación calcula la evolución del aire en una torre de enfriamiento y determina sus parámetros de diseño.')
 
 # ==================== DATOS DE EQUILIBRIO (MANTENER FIJOS O PERMITIR SELECCIÓN) ====================
