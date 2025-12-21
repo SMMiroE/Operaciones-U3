@@ -195,7 +195,7 @@ try:
     H_star_lin = interp1d(teq, Heq_data, kind='linear', fill_value='extrapolate')
 
 # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (CON RESTRICCIÓN FÍSICA) ====================
-    st.subheader('Cálculo del Flujo Mínimo de Aire')
+    #st.subheader('Cálculo del Flujo Mínimo de Aire')
 
     # Variables de salida inicializadas por seguridad
     t_pinch_global = tini
@@ -238,12 +238,12 @@ try:
             # Si la tangencia es fuera de rango, el punto crítico es el tope
             m_max_global = m_tope
             t_pinch_global = tfin
-            st.warning("⚠️ Pinch detectado en la cabeza de la columna (T_entrada agua).")
+            #st.warning("⚠️ Pinch detectado en la cabeza de la columna (T_entrada agua).")
         else:
             # Si la tangencia es interna, es el flujo mínimo teórico estricto
             m_max_global = m_tangente
             t_pinch_global = t_pinch_calc
-            st.success("✅ Tangencia interna detectada (Pinch intermedio).")
+            #st.success("✅ Tangencia interna detectada (Pinch intermedio).")
 
         H_pinch_global = H_star_func(t_pinch_global)
 
@@ -251,10 +251,10 @@ try:
         Gs_min = (L * Cp_default) / m_max_global
         G_min = Gs_min / (1 - y1)
 
-        col_a, col_b, col_c = st.columns(3)
-        col_a.metric("Pendiente Máx (m)", f"{m_max_global:.3f}")
-        col_b.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}")
-        col_c.metric("Gs Mínimo", f"{Gs_min:.1f} kg/h·m²")
+        #col_a, col_b, col_c = st.columns(3)
+        #col_a.metric("Pendiente Máx (m)", f"{m_max_global:.3f}")
+        #col_b.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}")
+        #col_c.metric("Gs Mínimo", f"{Gs_min:.1f} kg/h·m²")
 
     except Exception as e:
         st.error(f"Error en la optimización: {e}")
