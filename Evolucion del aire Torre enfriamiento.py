@@ -7,7 +7,7 @@ from scipy.optimize import fsolve  # Para resolver numéricamente el punto de pe
 
 # ==================== CONFIGURACIÓN DE LA PÁGINA (OPCIONAL) ====================
 st.set_page_config(
-    page_title="Método de Mickley - Torres de Enfriamiento",
+    page_title="Simulacion de Torres de Enfriamiento OU3 FICA-UNSL",
     layout="centered",  # o "wide" para más espacio
     initial_sidebar_state="auto"
 )
