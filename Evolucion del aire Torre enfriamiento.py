@@ -194,79 +194,86 @@ try:
     # Versión lineal para cálculo robusto de Gs_min
     H_star_lin = interp1d(teq, Heq_data, kind='linear', fill_value='extrapolate')
 
-    # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE ====================
-    st.subheader('Cálculo del Flujo Mínimo de Aire')
+    # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (CORREGIDO) ====================
+    st.subheader('Cálculo del Flujo Mínimo de Aire (Método de Tangencia)')
 
+    t_pinch_global = tini
+    H_pinch_global = H_star_func(tini)
+    m_max_global = 0
     Gs_min = 1.0
-    Hfin_min = Hini + (L * Cp_default / Gs_min) * (tfin - tini)
-    t_pinch_for_Gs_min = tini
-    H_pinch_value = H_star_func(tini)
+    G_min = 1.0
 
     try:
         if tini >= tfin:
-            st.error("Error: La temperatura de salida del agua (tini) debe ser menor que la de entrada (tfin) para calcular el flujo mínimo.")
-            st.stop()
+            st.error("Error: tini debe ser menor que tfin.")
+        else:
+            # Punto inicial del AIRE: (tG1, Hini)
+            t_start = tG1
+            H_start = Hini
+            
+            # Rango de búsqueda para punto de tangencia: entre max(tini,tG1) y tfin
+            t_min_search = max(tini, tG1, np.min(teq))
+            t_max_search = min(tfin, np.max(teq))
+            t_search_range = np.linspace(t_min_search, t_max_search, 1000)
 
-        # Entalpía de equilibrio a la entrada caliente
-        H_eq_tfin = float(H_star_lin(tfin))
+            slopes_valid = []
+            
+            for t_pinch in t_search_range:
+                H_star_pinch = float(H_star_func(t_pinch))
+                
+                # Pendiente de la recta desde (tG1, Hini) → (t_pinch, H*(t_pinch))
+                delta_t = t_pinch - t_start
+                if abs(delta_t) < 1e-6:
+                    continue
+                    
+                slope = (H_star_pinch - H_start) / delta_t
+                
+                if slope <= 0:
+                    continue
+                    
+                # VERIFICACIÓN DE TANGENCIA: la recta NO debe cruzar H*(t) entre tG1 y t_pinch
+                t_check = np.linspace(t_start, t_pinch, 50)
+                is_tangent = True
+                
+                for t_check_pt in t_check[1:-1]:  # Excluye extremos
+                    H_line = H_start + slope * (t_check_pt - t_start)
+                    H_star_check = float(H_star_func(t_check_pt))
+                    
+                    # Si la recta está POR ENCIMA de H* → NO es tangente
+                    if H_line > H_star_check + 1e-3:
+                        is_tangent = False
+                        break
+                
+                if is_tangent:
+                    slopes_valid.append((slope, t_pinch, H_star_pinch))
 
-        # Rango de búsqueda de T_pinch entre tini y tfin
-        t_search_range = np.linspace(tini + 1e-6, tfin, 500)
-        t_search_range = t_search_range[(t_search_range >= np.min(teq)) & (t_search_range <= np.max(teq))]
+            if slopes_valid:
+                # PENDIENTE MÁXIMA = recta tangente con menor Gs_min
+                m_max, t_pinch, H_pinch = max(slopes_valid, key=lambda x: x[0])
+                
+                Gs_min = (L * Cp_default) / m_max
+                G_min = Gs_min / (1 - y1)
+                
+                # Variables globales para gráfico
+                t_pinch_global = t_pinch
+                H_pinch_global = H_pinch
+                m_max_global = m_max
 
-        if t_search_range.size == 0:
-            st.error("Error: El rango de temperaturas del agua no se superpone con los datos de la curva de equilibrio. Ajuste los datos de entrada o la curva de equilibrio.")
-            st.stop()
+                st.success("✅ Punto de pellizco calculado correctamente")
+                st.write(f"  - **Punto inicial aire**: tG1 = {t_start:.1f} {temp_unit}, H1 = {H_start:.1f} {enthalpy_unit}")
+                st.write(f"  - **Punto de pellizco**: t_pinch = **{t_pinch:.2f}** {temp_unit}, H* = **{H_pinch:.2f}** {enthalpy_unit}")
+                st.write(f"  - **Pendiente tangente**: m_max = **{m_max:.3f}** {enthalpy_unit}/{temp_unit}")
+                st.write(f"  - **Gs_min**: **{Gs_min:.1f}** {flow_unit.replace('aire', 'aire seco')}")
+                st.write(f"  - **G_min**: **{G_min:.1f}** {flow_unit}")
+                st.write(f"  - **Relación actual**: G/G_min = **{G/G_min:.2f}**")
 
-        slopes_to_equilibrium = []
-        for t_eq_point in t_search_range:
-            H_star_at_t_eq = float(H_star_lin(t_eq_point))
-            if abs(t_eq_point - tini) < 1e-9:
-                continue
-
-            slope_candidate = (H_star_at_t_eq - Hini) / (t_eq_point - tini)
-            if slope_candidate <= 0:
-                continue
-
-            # entalpía de la recta candidata en tfin
-            H_line_at_tfin = Hini + slope_candidate * (tfin - tini)
-
-            # condición física: la recta mínima no debe estar por encima de H* en tfin
-            if H_line_at_tfin <= H_eq_tfin + 1e-6:
-                slopes_to_equilibrium.append((slope_candidate, t_eq_point, H_star_at_t_eq, H_line_at_tfin))
-
-        if not slopes_to_equilibrium:
-            st.error("No se encontraron pendientes válidas para calcular el flujo mínimo. Revise los datos de entrada o la viabilidad del diseño.")
-            st.stop()
-
-        # Pendiente máxima válida
-        m_min, t_pinch_for_Gs_min, H_pinch_value, H_line_at_tfin = max(slopes_to_equilibrium, key=lambda item: item[0])
-
-        if m_min <= 0:
-            st.error("Error: La pendiente máxima calculada para el flujo mínimo es cero o negativa. Esto indica un problema con los datos o que el enfriamiento deseado es imposible.")
-            st.stop()
-
-        Gs_min = (L * Cp_default) / m_min
-        Hfin_min = Hini + m_min * (tfin - tini)
-        G_min = Gs_min / (1 - y1)
-
-        st.write(f"  - Punto de pellizco (temperatura): **{t_pinch_for_Gs_min:.2f}** {temp_unit}")
-        st.write(f"  - Punto de pellizco (entalpía): **{H_pinch_value:.2f}** {enthalpy_unit}")
-        st.write(f"  - Flujo mínimo de aire seco (Gs_min): **{Gs_min:.2f}** {flow_unit.replace('aire', 'aire seco')}")
-        st.write(f"  - Flujo mínimo de aire (G_min): **{G_min:.2f}** {flow_unit}")
-        st.write(f"  - Entalpía del aire a la salida con flujo mínimo (Hfin_min): **{Hfin_min:.2f}** {enthalpy_unit}")
-
-        if G < G_min:
-            st.warning(f"Advertencia: El flujo de aire actual (G={G:.2f} {flow_unit}) es menor que el flujo mínimo requerido (G_min={G_min:.2f} {flow_unit}). Esto indica que el enfriamiento deseado es imposible con el flujo de aire actual.")
-        elif G / G_min < 1.1:
-            st.warning(f"Advertencia: El flujo de aire actual (G={G:.2f} {flow_unit}) está muy cerca del flujo mínimo requerido (G_min={G_min:.2f} {flow_unit}). Operar tan cerca del mínimo puede requerir una torre de enfriamiento muy grande y costosa.")
+                if G < G_min * 1.05:
+                    st.warning(f"⚠️ Flujo G insuficiente (G/G_min = {G/G_min:.2f}).")
+            else:
+                st.warning("⚠️ No se encontraron rectas tangentes válidas. Usando aproximación en tini.")
 
     except Exception as e:
-        st.error(f"No se pudo calcular el flujo mínimo de aire. Revise los datos de entrada o la viabilidad del diseño. Detalle del error: {e}")
-        Gs_min = 1.0
-        Hfin_min = Hini + (L * Cp_default / Gs_min) * (tfin - tini)
-        t_pinch_for_Gs_min = tini
-        H_pinch_value = H_star_func(tini)
+        st.error(f"Error en cálculo Gs_min: {e}")
 
     # ==================== MÉTODO DE MICKLEY ======================
     DH = (Hfin - Hini) / 20
@@ -415,10 +422,10 @@ try:
     st.write(f"  - Base de la torre (salida de agua): (t = {tini:.2f} {temp_unit}, H = {Hini:.2f} {enthalpy_unit})")
     st.info("**Parámetros de Diseño:**")
     st.write(f"  - Humedad absoluta del aire a la salida: **Y = {Y_air[-1]:.5f}** (masa vapor de agua/masa de aire seco)")
-    st.write(f"  - Agua evaporada (reposición): **Lrep = {Lrep:.2f} {flow_unit}**")
+    st.write(f"  - Agua evaporada (reposición): **Lrep = {Lrep:.2f}** {flow_unit}")
     st.write(f"  - Número de unidades de transferencia (NtoG): **{NtoG:.2f}**")
-    st.write(f"  - Altura de unidad de transferencia (HtoG): **{HtoG:.2f} {length_unit}**")
-    st.write(f"  - Altura total del relleno (Z): **{Z_total:.2f} {length_unit}**")
+    st.write(f"  - Altura de unidad de transferencia (HtoG): **{HtoG:.2f}** {length_unit}")
+    st.write(f"  - Altura total del relleno (Z): **{Z_total:.2f}** {length_unit}")
 
     # ==================== GRÁFICO FINAL ====================
     st.subheader('Diagrama de Entalpía-Temperatura')
@@ -429,6 +436,13 @@ try:
     ax.plot(T_plot, H_star_func(T_plot), label=f'Curva de equilibrio H*({temp_unit})', linewidth=2, color='blue')
     ax.plot([tini, tfin], [Hini, Hfin], 'r-', label=f'Línea de operación Hop({temp_unit})', linewidth=2)
     ax.plot(t_air, H_air, 'ko-', label=f'Curva de evolución del aire H({temp_unit})', markersize=4, linewidth=1)
+
+    # Línea tangente del pinch (RECTA ROJA)
+    Hfin_min = Hini + m_max_global * (tfin - tG1)
+    ax.plot([tG1, t_pinch_global, tfin], 
+            [Hini, H_pinch_global, Hfin_min], 
+            'r--', linewidth=3, label='Recta tangente (Gs_min)', alpha=0.8)
+    ax.plot(t_pinch_global, H_pinch_global, 'ro', markersize=12, label=f'Pinch ({t_pinch_global:.1f}{temp_unit})')
 
     # Dibujo del triángulo inicial
     A_plot = (tG1, Hini)
