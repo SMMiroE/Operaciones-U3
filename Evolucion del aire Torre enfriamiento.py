@@ -488,8 +488,8 @@ except Exception as e:
     st.error(f"Ha ocurrido un error en los cálculos. Por favor, revise los datos de entrada. Detalle del error: {e}")
     # ==================== SECCIÓN DE FUNDAMENTOS Y METODOLOGÍA ====================
 with st.expander("📚 Ver Condiciones de operacion, restricciones y metodología de cálculo"):
-    
-    st.markdown("### 📋 Condiciones y restricciones")
+   
+    st.markdown("### 📋 Condiciones y restricciones del modelo")
     st.info("""
     1. **Estado Estacionario** 
     2. **Operación Adiabática** 
@@ -537,15 +537,15 @@ with st.expander("📚 Ver Condiciones de operacion, restricciones y metodologí
     st.write("Se calcula a partir de la diferencia de humedades absolutas entre la entrada y la salida:")
     st.latex(r"L_{rep} = G_s \cdot (Y_2 - Y_1)")
     st.markdown("---")
-    st.markdown("### 📚 Bibliografía")
+    st.markdown("### 📚 Bibliografía y recursos")
+
+    st.markdown("El desarrollo del simulador se realizó en lenguaje Python 3.11 (Van Rossum & Drake, 2025), utilizando la librería Streamlit para la interfaz de usuario. El procesamiento numérico y la resolución de las ecuaciones de balance de entalpía se apoyaron en las librerías NumPy y SciPy, utilizando específicamente algoritmos de resolución no lineal (fsolve) e interpolación spline para la modelización de las curvas de equilibrio psicrométrico.")
     
     st.markdown("""
-    * **Treybal, R. E. (1980).** *Mass-Transfer Operations* (3rd ed.). McGraw-Hill Education. 
-        
-    
-    * **Foust, A. S., Wenzel, L. A., Clump, C. W., Maus, L., & Andersen, L. B. (1980).** *Principles of Unit Operations* (2nd ed.). John Wiley & Sons.
-    * **Streamlit Inc. (2025). **Streamlit (Version 1.x) [Software]. https://streamlit.io
-    * **Harris, C. R., et al. (2020). Array programming with NumPy. Nature, 585(7825), 357–362.
+    * Treybal, R. E. (1980).Mass-Transfer Operations (3rd ed.). McGraw-Hill Education. 
+    * Foust, A. S., Wenzel, L. A., Clump, C. W., Maus, L., & Andersen, L. B. (1980).Principles of Unit Operations (2nd ed.). John Wiley & Sons.
+    * Streamlit Inc. (2025). Streamlit (Version 1.x) [Software]. https://streamlit.io
+    * Harris, C.R., Millman, K.J., van der Walt, S.J. et al. Array programming with NumPy. Nature 585, 357–362 (2020). https://doi.org/10.1038/s41586-020-2649-2
     """)
     
 st.markdown("### 🎓 ")
