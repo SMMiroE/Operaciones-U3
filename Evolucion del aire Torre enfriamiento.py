@@ -515,8 +515,7 @@ with st.expander("📚 Ver Condiciones de operacion, restricciones y metodologí
        
     """)
   
-   
-        st.markdown("### 🎓 Créditos y Autoría")
+    st.markdown("### 🎓 Créditos y Autoría")
     
     st.write("**Asignatura:** Operaciones Unitarias III")
     st.write("**Institución:** Facultad de Ingeniería y Ciencias Agropecuarias (FICA) - Universidad Nacional de San Luis.")
