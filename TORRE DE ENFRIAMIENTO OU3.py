@@ -403,7 +403,9 @@ try:
 
 # ==================== SECCIÓN DE RESULTADOS UNIFICADA Y COMPACTA ====================
     st.markdown("### 📊 Resultados de la Simulación")
-
+    st.markdown("##### Condicionesde operacion")
+    st.write(f"**Gs:** {Gs:.2f} {flow_unit}")
+    st.write(f"**Ls:** {L:.2f} {flow_unit}")
     # --- PARTE 1: Puntos de Operación ---
     st.markdown("##### 🌡️ Condiciones en los extremos de la torre")
     col_ext1, col_ext2 = st.columns(2)
