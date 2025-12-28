@@ -39,6 +39,7 @@ if opcion_unidades == 'Sistema Inglés':
     cp_unit = "BTU/(lb agua °F)"  # Especificación de unidades de Cp
     Y_unit = "lb agua/lb aire seco"  # Especificación de unidades de Y
     psychrometric_constant = 0.000367  # psi^-1 (para presión en psi)
+    Gs_unit = "lb aire seco/(h ft²)"
 else:  # Sistema Internacional
     teq = np.array([0, 10, 20, 30, 40, 50, 60])  # °C
     Heq_data = np.array([9479, 29360, 57570, 100030, 166790, 275580, 461500])  # J/kg aire seco
@@ -55,7 +56,7 @@ else:  # Sistema Internacional
     cp_unit = "J/(kg agua °C)"  # Especificación de unidades de Cp
     Y_unit = "kg agua/kg aire seco"  # Especificación de unidades de Y
     psychrometric_constant = 0.000662  # kPa^-1 (para presión en kPa)
-
+    Gs_unit = "kg aire seco/(s m²)"
 # ==================== FUNCIONES TERMODINÁMICAS ====================
 
 def calcular_entalpia_aire(t, Y, temp_ref, latent_ref, cp_air_dry, cp_vapor):
@@ -431,7 +432,7 @@ try:
         st.markdown("##### Flujo mínimo de aire")
         st.write(f"📉**Pendiente Máxima:** {m_max_global:.3f}")
         #st.write(f"📍 **Temp. Pinch:** {t_pinch_global:.2f} {temp_unit}")
-        st.write(f"🌬️**Gs Mínimo:** {Gs_min:.1f} kg/h·m²")
+        st.write(f"🌬️**Gs Mínimo:** {Gs_min:.1f} {Gs_unit}")
         #estado_txt = "Interno" if t_pinch_global < tfin else "En Cabeza"
         #st.write(f"📌 **Tipo de Pinch:** {estado_txt}")
 
