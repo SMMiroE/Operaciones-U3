@@ -111,7 +111,7 @@ def calculate_Y_from_relative_humidity(t_dry_bulb, relative_humidity_percent, to
     return Y
 
 # ==================== ENTRADA DE DATOS DEL PROBLEMA ====================
-st.sidebar.header('Parámetros del Problema')
+st.sidebar.header('Datos del Problema')
 
 P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f")
 L = st.sidebar.number_input(f'Flujo de agua (L, {flow_unit})', value=2200.0, format="%.2f")
@@ -402,7 +402,7 @@ try:
     Lrep = Gs * (Y_air[-1] - Y1)
 
 # ==================== SECCIÓN DE RESULTADOS UNIFICADA Y COMPACTA ====================
-    st.markdown("### 📊 Resultados de la Simulación")
+    st.markdown("### 📊 Resultados")
     
     # --- PARTE 1: Puntos de Operación ---
     st.markdown("##### 🌡️ Condiciones en los extremos de la torre")
@@ -415,7 +415,7 @@ try:
         st.write(f"🔥 **Entalpía del aire:** {H_air[-1]:.2f} {enthalpy_unit}")
 
     with col_ext2:
-        st.markdown("**Base**")
+        st.markdown("**Fondo**")
         st.write(f"🌡️ **Temperatura del agua:** {tini:.2f} {temp_unit}")
         st.write(f"🌡️ **Temperatura del aire:** {tG1:.2f} {temp_unit}")
         st.write(f"💧 **Humedad del aire:** {Y1:.5f} {Y_unit}")
