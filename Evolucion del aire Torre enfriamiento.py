@@ -489,7 +489,7 @@ except Exception as e:
     
     # ==================== SECCIÓN DE FUNDAMENTOS Y METODOLOGÍA ====================
 
-with st.expander("📚 Mas informacion"):
+with st.expander("📚 "):
    
     st.markdown("### 📋 Condiciones y restricciones del modelo")
     st.info("""
