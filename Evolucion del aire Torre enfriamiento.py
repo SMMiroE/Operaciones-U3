@@ -410,16 +410,16 @@ try:
     with col_ext1:
         st.markdown("**Cabeza**")
         st.write(f"🌡️ **Temperatura del agua:** {tfin:.2f} {temp_unit}")
-        st.write(f"🌡️ **Temperatura del aire($t_{{G2}}$):** {t_air[-1]:.2f} {temp_unit}")
-        st.write(f"💧 **Humedad del aire ($Y_2$):** {Y_air[-1]:.5f} {Y_unit}")
-        st.write(f"🔥 **Entalpía del aire ($H_2$):** {H_air[-1]:.2f} {enthalpy_unit}")
+        st.write(f"🌡️ **Temperatura del aire:** {t_air[-1]:.2f} {temp_unit}")
+        st.write(f"💧 **Humedad del aire:** {Y_air[-1]:.5f} {Y_unit}")
+        st.write(f"🔥 **Entalpía del aire:** {H_air[-1]:.2f} {enthalpy_unit}")
 
     with col_ext2:
         st.markdown("**Base**")
         st.write(f"🌡️ **Temperatura del agua:** {tini:.2f} {temp_unit}")
-        st.write(f"🌡️ **Temperatura del aire ($t_{{G1}}$):** {tG1:.2f} {temp_unit}")
-        st.write(f"💧 **Humedad del aire ($Y_1$):** {Y1:.5f} {Y_unit}")
-        st.write(f"🔥 **Entalpía del aire ($H_1$):** {Hini:.2f} {enthalpy_unit}")
+        st.write(f"🌡️ **Temperatura del aire:** {tG1:.2f} {temp_unit}")
+        st.write(f"💧 **Humedad del aire:** {Y1:.5f} {Y_unit}")
+        st.write(f"🔥 **Entalpía del aire:** {Hini:.2f} {enthalpy_unit}")
 
     st.markdown("---")
 
@@ -429,7 +429,7 @@ try:
 
     with col_res1:
         st.markdown("##### Flujo mínimo de aire")
-        st.write(f"📉**Pendiente Máx (m):** {m_max_global:.3f}")
+        st.write(f"📉**Pendiente Máxima:** {m_max_global:.3f}")
         #st.write(f"📍 **Temp. Pinch:** {t_pinch_global:.2f} {temp_unit}")
         st.write(f"🌬️**Gs Mínimo:** {Gs_min:.1f} kg/h·m²")
         #estado_txt = "Interno" if t_pinch_global < tfin else "En Cabeza"
