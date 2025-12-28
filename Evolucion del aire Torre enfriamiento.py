@@ -115,14 +115,303 @@ st.sidebar.header('Parámetros del Problema')
 
 P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f")
 L = st.sidebar.number_input(f'Flujo de agua (L, {flow_unit})', value=2200.0, format="%.2f")
-Lrep = Gs * (Y_air[-1] - Y1)
+G = st.sidebar.number_input(f'Flujo de aire (G, {flow_unit})', value=2000.0, format="%.2f")
+tfin = st.sidebar.number_input(f'Temperatura de entrada del agua (tfin, {temp_unit})', value=105.0, format="%.2f")
+tini = st.sidebar.number_input(f'Temperatura de salida del agua (tini, {temp_unit})', value=85.0, format="%.2f")
+
+Y1_source_option = st.sidebar.radio(
+    "Fuente de Humedad Absoluta (Y1):",
+    ('Ingresar Y1 directamente', 'Calcular Y1 a partir de Bulbo Húmedo', 'Calcular Y1 a partir de Humedad Relativa')
+)
+
+Y1 = 0.016  # Valor por defecto inicial
+
+if Y1_source_option == 'Ingresar Y1 directamente':
+    tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
+    tw1 = st.sidebar.number_input(f'Bulbo húmedo del aire a la entrada (tw1, {temp_unit})', value=76.0, format="%.2f")
+    Y1 = st.sidebar.number_input(f'Humedad absoluta del aire a la entrada (Y1, {Y_unit})', value=0.016, format="%.5f")
+
+elif Y1_source_option == 'Calcular Y1 a partir de Bulbo Húmedo':
+    tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
+    tw1 = st.sidebar.number_input(f'Bulbo húmedo del aire a la entrada (tw1, {temp_unit})', value=76.0, format="%.2f")
+    st.sidebar.write("Calculando Y1 a partir de Bulbo Húmedo:")
+    try:
+        calculated_Y1 = calculate_Y_from_wet_bulb(tG1, tw1, P, opcion_unidades, psychrometric_constant)
+        if calculated_Y1 == float('inf'):
+            st.sidebar.error("Error al calcular Y1: Posible saturación o datos inconsistentes. Ajuste las temperaturas de bulbo seco y húmedo.")
+            Y1 = 0.016
+        else:
+            Y1 = calculated_Y1
+            st.sidebar.info(f"Y1 calculado: **{Y1:.5f}** ({Y_unit})")
+    except Exception as e:
+        st.sidebar.error(f"Error en el cálculo de Y1: {e}. Usando valor por defecto.")
+        Y1 = 0.016
+
+elif Y1_source_option == 'Calcular Y1 a partir de Humedad Relativa':
+    tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
+    relative_humidity = st.sidebar.number_input('Humedad Relativa a la entrada (HR, %)', value=50.0, min_value=0.0, max_value=100.0, format="%.1f")
+    tw1 = 0.0
+    st.sidebar.write("Calculando Y1 a partir de Humedad Relativa:")
+    try:
+        calculated_Y1 = calculate_Y_from_relative_humidity(tG1, relative_humidity, P, opcion_unidades)
+        if calculated_Y1 == float('inf'):
+            st.sidebar.error("Error al calcular Y1: Posible saturación o datos inconsistentes. Ajuste la temperatura de bulbo seco y la humedad relativa.")
+            Y1 = 0.016
+        else:
+            Y1 = calculated_Y1
+            st.sidebar.info(f"Y1 calculado: **{Y1:.5f}** ({Y_unit})")
+    except Exception as e:
+        st.sidebar.error(f"Error en el cálculo de Y1: {e}. Usando valor por defecto.")
+        Y1 = 0.016
+
+KYa = st.sidebar.number_input(f'Coef. volumétrico de transferencia de materia (KYa, {kya_unit})', value=850.0, format="%.2f")
+
+# ==================== CÁLCULOS BASE ====================
+try:
+    y1 = Y1 / (1 + Y1)
+    Gs = G * (1 - y1)
+
+    Hini = calcular_entalpia_aire(tG1, Y1, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor)
+
+    if Gs == 0:
+        st.error("Error: El flujo de aire seco (Gs) no puede ser cero. Revise el flujo de aire (G) y la humedad (Y1).")
+        st.stop()
+
+    Hfin = (L * Cp_default / Gs) * (tfin - tini) + Hini
+
+    if tini >= tfin:
+        st.warning("Advertencia: La temperatura de salida del agua (tini) debe ser menor que la de entrada (tfin) para un enfriamiento.")
+
+    # ==================== CURVA H*(t) ====================
+    # Spline cúbica para Mickley e integración
+    H_star_func = interp1d(teq, Heq_data, kind='cubic', fill_value='extrapolate')
+    tck = splrep(teq, Heq_data, k=3)
+
+    def dH_star_dt_func_spline(t_val):
+        t_val_clipped = np.clip(t_val, np.min(teq), np.max(teq))
+        return splev(t_val_clipped, tck, der=1)
+
+    # Versión lineal para cálculo robusto de Gs_min
+    H_star_lin = interp1d(teq, Heq_data, kind='linear', fill_value='extrapolate')
+
+# ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (CON RESTRICCIÓN FÍSICA) ====================
+    #st.subheader('Cálculo del Flujo Mínimo de Aire')
+
+    # Variables de salida inicializadas por seguridad
+    t_pinch_global = tini
+    H_pinch_global = H_star_func(tini)
+    m_max_global = 0.0
+    Gs_min = 0.0
+
+    try:
+        t_start = tini
+        H_start = Hini
+
+        # 1. Definimos el rango de búsqueda matemática (amplio para el optimizador)
+        t_rango_check = np.linspace(tini - 5, tfin + 10, 1000)
+
+        def objetivo_tangencia(m):
+            h_op = H_start + m * (t_rango_check - t_start)
+            h_eq = H_star_func(t_rango_check)
+            distancia_minima = np.min(h_eq - h_op)
+            return distancia_minima**2
+
+        from scipy.optimize import minimize
+
+        # Pendiente inicial aproximada
+        m_guess = (H_star_func(tfin) - H_start) / (tfin - t_start)
+        res_m = minimize(objetivo_tangencia, x0=[m_guess], bounds=[(0.01, None)], method='L-BFGS-B')
+
+        m_tangente = res_m.x[0]
+
+        # 2. Identificamos dónde ocurre esa tangencia matemática
+        h_op_tangente = H_start + m_tangente * (t_rango_check - t_start)
+        h_eq_check = H_star_func(t_rango_check)
+        idx_pinch = np.argmin(h_eq_check - h_op_tangente)
+        t_pinch_calc = t_rango_check[idx_pinch]
+
+        # 3. LÓGICA DE RESTRICCIÓN DE RANGO (Cabeza de columna)
+        # Pendiente límite hacia el equilibrio en la entrada de agua (Punto crítico en T_fin)
+        m_tope = (H_star_func(tfin) - H_start) / (tfin - t_start)
+
+        if t_pinch_calc > tfin:
+            # Si la tangencia es fuera de rango, el punto crítico es el tope
+            m_max_global = m_tope
+            t_pinch_global = tfin
+            #st.warning("⚠️ Pinch detectado en la cabeza de la columna (T_entrada agua).")
+        else:
+            # Si la tangencia es interna, es el flujo mínimo teórico estricto
+            m_max_global = m_tangente
+            t_pinch_global = t_pinch_calc
+            #st.success("✅ Tangencia interna detectada (Pinch intermedio).")
+
+        H_pinch_global = H_star_func(t_pinch_global)
+
+        # 4. Cálculos de flujo final
+        Gs_min = (L * Cp_default) / m_max_global
+        G_min = Gs_min / (1 - y1)
+
+        #col_a, col_b, col_c = st.columns(3)
+        #col_a.metric("Pendiente Máx (m)", f"{m_max_global:.3f}")
+        #col_b.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}")
+        #col_c.metric("Gs Mínimo", f"{Gs_min:.1f} kg/h·m²")
+
+    except Exception as e:
+        st.error(f"Error en la optimización: {e}")
+        m_max_global = (H_star_func(tfin) - Hini) / (tfin - tG1)
+        Gs_min = (L * Cp_default) / m_max_global
+
+    # ==================== MÉTODO DE MICKLEY ======================
+    DH = (Hfin - Hini) / 20
+
+    if DH <= 0:
+        st.error("Error: El incremento de entalpía (DH) es cero o negativo. Revise las temperaturas del agua (tini, tfin) y flujos (L, G).")
+        st.stop()
+
+    t_air = [tG1]
+    H_air = [Hini]
+    Y_air = [calcular_Y(Hini, tG1, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor)]
+    t_op = [tini]
+    H_op = [Hini]
+    H_star = [H_star_func(tini)]
+    segmentos = []
+
+    max_iterations = 1000
+    i_loop = 0
+
+    while True:
+        i_loop += 1
+        if i_loop > max_iterations:
+            st.warning(f"Advertencia: Bucle de Mickley excedió {max_iterations} iteraciones. Revisar datos de entrada o divergencia.")
+            break
+
+        H_next = H_air[-1] + DH
+
+        if H_next >= Hfin:
+            H_next = Hfin
+            t_op_next = (H_next - Hini) * (tfin - tini) / (Hfin - Hini) + tini
+            H_star_next = H_star_func(t_op_next)
+
+            if len(H_air) > 1 and len(t_air) > 1 and len(t_op) > 1 and len(H_star) > 1:
+                t_prev = t_air[-1]
+                H_prev = H_air[-1]
+                t_op_prev = t_op[-1]
+                H_star_prev = H_star[-1]
+                DH_last_step = H_next - H_prev
+                if abs(H_star_prev - H_prev) < 1e-6:
+                    t_next = t_prev
+                else:
+                    t_next = DH_last_step * ((t_op_prev - t_prev) / (H_star_prev - H_prev)) + t_prev
+            else:
+                t_next = tG1
+
+            H_star_tnext = H_star_func(t_next)
+            Y_next = calcular_Y(H_next, t_next, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor)
+
+            H_air.append(H_next)
+            t_air.append(t_next)
+            Y_air.append(Y_next)
+            t_op.append(t_op_next)
+            H_op.append(H_next)
+            H_star.append(H_star_next)
+            break
+
+        t_op_next = (H_next - Hini) * (tfin - tini) / (Hfin - Hini) + tini
+        H_star_next = H_star_func(t_op_next)
+
+        if abs(H_star[-1] - H_air[-1]) < 1e-6:
+            t_next = t_air[-1]
+        else:
+            t_next = DH * ((t_op[-1] - t_air[-1]) / (H_star[-1] - H_air[-1])) + t_air[-1]
+
+        H_star_tnext = H_star_func(t_next)
+        Y_next = calcular_Y(H_next, t_next, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor)
+
+        if H_next > Hfin or (H_next - H_star_tnext) > 0:
+            if H_next > Hfin:
+                H_next = Hfin
+                t_op_next = (H_next - Hini) * (tfin - tini) / (Hfin - Hini) + tini
+                H_star_next = H_star_func(t_op_next)
+
+                if len(H_air) > 1 and len(t_air) > 1 and len(t_op) > 1 and len(H_star) > 1:
+                    t_prev = t_air[-1]
+                    H_prev = H_air[-1]
+                    t_op_prev = t_op[-1]
+                    H_star_prev = H_star[-1]
+                    DH_last_step = H_next - H_prev
+                    if abs(H_star_prev - H_prev) < 1e-6:
+                        t_next = t_prev
+                    else:
+                        t_next = DH_last_step * ((t_op_prev - t_prev) / (H_star_prev - H_prev)) + t_prev
+                else:
+                    t_next = tG1
+                Y_next = calcular_Y(H_next, t_next, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor)
+
+                H_air.append(H_next)
+                t_air.append(t_next)
+                Y_air.append(Y_next)
+                t_op.append(t_op_next)
+                H_op.append(H_next)
+                H_star.append(H_star_next)
+            break
+
+        H_air.append(H_next)
+        t_air.append(t_next)
+        Y_air.append(Y_next)
+        t_op.append(t_op_next)
+        H_op.append(H_next)
+        H_star.append(H_star_next)
+
+        segmentos.append(((t_next, H_next), (t_op_next, H_next)))
+        segmentos.append(((t_op_next, H_next), (t_op_next, H_star_next)))
+        segmentos.append(((t_op_next, H_star_next), (t_next, H_next)))
+
+    if len(H_air) <= 1:
+        st.warning("No se pudo generar la curva de evolución del aire. Revise las temperaturas y flujos de entrada.")
+        st.stop()
+
+    # ==================== CÁLCULO DE NtoG ====================
+    n_pasos_integracion = 100
+    dt_integracion = (tfin - tini) / n_pasos_integracion
+    t_water_integracion = np.linspace(tini, tfin, n_pasos_integracion + 1)
+
+    H_op_vals_integracion = np.interp(t_water_integracion, [tini, tfin], [Hini, Hfin])
+    H_star_vals_integracion = H_star_func(t_water_integracion)
+
+    f_T_integracion = []
+    for i in range(len(t_water_integracion)):
+        delta = H_star_vals_integracion[i] - H_op_vals_integracion[i]
+        if abs(delta) < 1e-6:
+            st.error(f"Error: La línea de operación está muy cerca o cruza la curva de equilibrio en t={t_water_integracion[i]:.2f}. Verifique los datos de entrada o la viabilidad del diseño. No se puede calcular NtoG.")
+            st.stop()
+        f_T_integracion.append(1 / delta)
+
+    dHdT_integracion = (Hfin - Hini) / (tfin - tini)
+    NtoG = 0
+    for i in range(1, len(t_water_integracion)):
+        NtoG += 0.5 * dt_integracion * (f_T_integracion[i] + f_T_integracion[i - 1])
+    NtoG *= dHdT_integracion
+
+    # ======== CÁLCULO DE HtoG, Z y agua de reposición ====================
+    if KYa == 0:
+        st.error("Error: KYa no puede ser cero. Revise el coeficiente de transferencia de masa.")
+        st.stop()
+
+    HtoG = Gs / KYa
+    Z_total = HtoG * NtoG
+    Lrep = Gs * (Y_air[-1] - Y1)
 
 # ==================== SECCIÓN DE RESULTADOS UNIFICADA Y COMPACTA ====================
     st.markdown("### 📊 Resultados de la Simulación")
 
     # --- PARTE 1: Puntos de Operación ---
     st.markdown("##### 🌡️ Condiciones en los extremos de la torre")
-
+    col_ext1, col_ext2 = st.columns(2)
+    with col_ext1:
+        st.markdown("**Cabeza**")
+        st.write(f"🌡️ **Temperatura del agua:** {tfin:.2f} {temp_unit}")
+        st.write(f"🌡️ **Temperatura del aire:** {t_air[-1]:.2f} {temp_unit}")
+        st.write(f"💧 **Humedad del aire:** {Y_air[-1]:.5f} {Y_unit}")
         st.write(f"🔥 **Entalpía del aire:** {H_air[-1]:.2f} {enthalpy_unit}")
 
     with col_ext2:
