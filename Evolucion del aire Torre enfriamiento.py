@@ -115,7 +115,7 @@ st.sidebar.header('Parámetros del Problema')
 
 P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f")
 L = st.sidebar.number_input(f'Flujo de agua (L, {flow_unit})', value=2200.0, format="%.2f")
-@@ -402,7 +402,7 @@
+
     Lrep = Gs * (Y_air[-1] - Y1)
 
 # ==================== SECCIÓN DE RESULTADOS UNIFICADA Y COMPACTA ====================
@@ -123,7 +123,7 @@ L = st.sidebar.number_input(f'Flujo de agua (L, {flow_unit})', value=2200.0, for
 
     # --- PARTE 1: Puntos de Operación ---
     st.markdown("##### 🌡️ Condiciones en los extremos de la torre")
-@@ -415,148 +415,148 @@
+
         st.write(f"🔥 **Entalpía del aire:** {H_air[-1]:.2f} {enthalpy_unit}")
 
     with col_ext2:
