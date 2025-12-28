@@ -431,7 +431,7 @@ try:
         st.markdown("##### Flujo mínimo de aire")
         st.write(f"📉**Pendiente Máxima:** {m_max_global:.3f}")
         #st.write(f"📍 **Temp. Pinch:** {t_pinch_global:.2f} {temp_unit}")
-        st.write(f"🌬️**Gs Mínimo:** {Gs_min:.1f} kg/h·m²")
+        st.write(f"🌬️**Gs Mínimo:** {Gs_min:.1f}")
         #estado_txt = "Interno" if t_pinch_global < tfin else "En Cabeza"
         #st.write(f"📌 **Tipo de Pinch:** {estado_txt}")
 
