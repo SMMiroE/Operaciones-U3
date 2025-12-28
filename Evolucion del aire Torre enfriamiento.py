@@ -1,14 +1,14 @@
 # ==================== IMPORTACIÓN DE LIBRERÍAS ====================
-import streamlit as st # Importa la librería Streamlit
+import streamlit as st  # Importa la librería Streamlit
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d, splev, splrep # Import splev and splrep
-from scipy.optimize import fsolve # Para resolver numéricamente el punto de pellizco
+from scipy.interpolate import interp1d, splev, splrep  # Import splev and splrep
+from scipy.optimize import fsolve  # Para resolver numéricamente el punto de pellizco
 
 # ==================== CONFIGURACIÓN DE LA PÁGINA (OPCIONAL) ====================
 st.set_page_config(
     page_title="Torres de Enfriamiento OU3 FICA-UNSL",
-    layout="centered", # o "wide" para más espacio
+    layout="centered",  # o "wide" para más espacio
     initial_sidebar_state="auto"
 )
 
@@ -24,39 +24,37 @@ opcion_unidades = st.radio(
 )
 
 if opcion_unidades == 'Sistema Inglés':
-    teq = np.array([32, 40, 60, 80, 100, 120, 140]) # °F
-    Heq_data = np.array([4.074, 7.545, 18.780, 36.020, 64.090, 112.0, 198.0]) # BTU/lb aire seco
-    Cp_default = 1.0 # calor específico del agua, Btu/(lb °F)
+    teq = np.array([32, 40, 60, 80, 100, 120, 140])  # °F
+    Heq_data = np.array([4.074, 7.545, 18.780, 36.020, 64.090, 112.0, 198.0])  # BTU/lb aire seco
+    Cp_default = 1.0  # calor específico del agua, Btu/(lb °F)
     temp_unit = "°F"
     enthalpy_unit = "BTU/lb aire seco"
-    flow_unit = "lb/(h ft²)" # Especificación de unidades de flujo de agua y aire
+    flow_unit = "lb/(h ft²)"  # Especificación de unidades de flujo de agua y aire
     length_unit = "ft"
     h_temp_ref = 32
     h_latent_ref = 1075.8
     h_cp_air_dry = 0.24
     h_cp_vapor = 0.45
-    kya_unit = "lb/(h ft² DY)" # Especificación de unidades de KYa
-    cp_unit = "BTU/(lb agua °F)" # Especificación de unidades de Cp
-    Y_unit = "lb agua/lb aire seco" # Especificación de unidades de Y
-    psychrometric_constant = 0.000367 # psi^-1 (para presión en psi)
-    Gs_unit = "lb aire seco/(h ft²)"
-else: # Sistema Internacional
-    teq = np.array([0, 10, 20, 30, 40, 50, 60]) # °C
-    Heq_data = np.array([9479, 29360, 57570, 100030, 166790, 275580, 461500]) # J/kg aire seco
-    Cp_default = 4186 # calor específico del agua, J/(kg °C)
+    kya_unit = "lb/(h ft² DY)"  # Especificación de unidades de KYa
+    cp_unit = "BTU/(lb agua °F)"  # Especificación de unidades de Cp
+    Y_unit = "lb agua/lb aire seco"  # Especificación de unidades de Y
+    psychrometric_constant = 0.000367  # psi^-1 (para presión en psi)
+else:  # Sistema Internacional
+    teq = np.array([0, 10, 20, 30, 40, 50, 60])  # °C
+    Heq_data = np.array([9479, 29360, 57570, 100030, 166790, 275580, 461500])  # J/kg aire seco
+    Cp_default = 4186       # calor específico del agua, J/(kg °C)
     temp_unit = "°C"
-    enthalpy_unit = "J/kg aire seco" # Especificado "aire seco"
-    flow_unit = "kg/(s m²)" # Especificación de unidades de flujo de agua y aire
+    enthalpy_unit = "J/kg aire seco"  # Especificado "aire seco"
+    flow_unit = "kg/(s m²)"  # Especificación de unidades de flujo de agua y aire
     length_unit = "m"
-    h_temp_ref = 0 # Referencia para °C
-    h_latent_ref = 2501e3 # A 0°C, J/kg
-    h_cp_air_dry = 1005 # J/kg°C
-    h_cp_vapor = 1880 # J/kg°C (puede variar un poco)
-    kya_unit = "kg/(s m² DY)" # Especificación de unidades de KYa
-    cp_unit = "J/(kg agua °C)" # Especificación de unidades de Cp
-    Y_unit = "kg agua/kg aire seco" # Especificación de unidades de Y
-    psychrometric_constant = 0.000662 # kPa^-1 (para presión en kPa)
-    Gs_unit = "kg aire seco/(s m²)"
+    h_temp_ref = 0  # Referencia para °C
+    h_latent_ref = 2501e3  # A 0°C, J/kg
+    h_cp_air_dry = 1005  # J/kg°C
+    h_cp_vapor = 1880  # J/kg°C (puede variar un poco)
+    kya_unit = "kg/(s m² DY)"  # Especificación de unidades de KYa
+    cp_unit = "J/(kg agua °C)"  # Especificación de unidades de Cp
+    Y_unit = "kg agua/kg aire seco"  # Especificación de unidades de Y
+    psychrometric_constant = 0.000662  # kPa^-1 (para presión en kPa)
 
 # ==================== FUNCIONES TERMODINÁMICAS ====================
 
@@ -72,19 +70,19 @@ def get_saturation_vapor_pressure(temperature, units_system):
     """
     Calcula la presión de vapor de saturación del agua (Magnus).
     """
-    if units_system == 'Sistema Internacional': # Temperatura en °C, P_ws en kPa
+    if units_system == 'Sistema Internacional':  # Temperatura en °C, P_ws en kPa
         return 0.61094 * np.exp((17.625 * temperature) / (temperature + 243.04))
-    else: # Temperatura en °F, P_ws en psi
+    else:  # Temperatura en °F, P_ws en psi
         temp_c = (temperature - 32) * 5/9
         P_ws_kPa = 0.61094 * np.exp((17.625 * temp_c) / (temp_c + 243.04))
-        return P_ws_kPa / 6.89476 # kPa → psi
+        return P_ws_kPa / 6.89476  # kPa → psi
 
 def calculate_Y_from_wet_bulb(t_dry_bulb, t_wet_bulb, total_pressure_atm, units_system, psych_const):
     """Calcula Y a partir de bulbo seco, bulbo húmedo y P total."""
     if units_system == 'Sistema Internacional':
-        P_total = total_pressure_atm * 101.325 # kPa
+        P_total = total_pressure_atm * 101.325  # kPa
     else:
-        P_total = total_pressure_atm * 14.696 # psi
+        P_total = total_pressure_atm * 14.696  # psi
 
     P_ws_tw = get_saturation_vapor_pressure(t_wet_bulb, units_system)
     Pv = P_ws_tw - psych_const * P_total * (t_dry_bulb - t_wet_bulb)
@@ -100,9 +98,9 @@ def calculate_Y_from_wet_bulb(t_dry_bulb, t_wet_bulb, total_pressure_atm, units_
 def calculate_Y_from_relative_humidity(t_dry_bulb, relative_humidity_percent, total_pressure_atm, units_system):
     """Calcula Y a partir de bulbo seco, HR (%) y P total."""
     if units_system == 'Sistema Internacional':
-        P_total = total_pressure_atm * 101.325 # kPa
+        P_total = total_pressure_atm * 101.325  # kPa
     else:
-        P_total = total_pressure_atm * 14.696 # psi
+        P_total = total_pressure_atm * 14.696  # psi
 
     P_ws_tdb = get_saturation_vapor_pressure(t_dry_bulb, units_system)
     Pv = (relative_humidity_percent / 100.0) * P_ws_tdb
@@ -126,7 +124,7 @@ Y1_source_option = st.sidebar.radio(
     ('Ingresar Y1 directamente', 'Calcular Y1 a partir de Bulbo Húmedo', 'Calcular Y1 a partir de Humedad Relativa')
 )
 
-Y1 = 0.016 # Valor por defecto inicial
+Y1 = 0.016  # Valor por defecto inicial
 
 if Y1_source_option == 'Ingresar Y1 directamente':
     tG1 = st.sidebar.number_input(f'Bulbo seco del aire a la entrada (tG1, {temp_unit})', value=90.0, format="%.2f")
@@ -196,7 +194,7 @@ try:
     # Versión lineal para cálculo robusto de Gs_min
     H_star_lin = interp1d(teq, Heq_data, kind='linear', fill_value='extrapolate')
 
-    # ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (CON RESTRICCIÓN FÍSICA) ====================
+# ==================== CÁLCULO DEL FLUJO MÍNIMO DE AIRE (CON RESTRICCIÓN FÍSICA) ====================
     #st.subheader('Cálculo del Flujo Mínimo de Aire')
 
     # Variables de salida inicializadas por seguridad
@@ -208,7 +206,7 @@ try:
     try:
         t_start = tini
         H_start = Hini
-
+        
         # 1. Definimos el rango de búsqueda matemática (amplio para el optimizador)
         t_rango_check = np.linspace(tini - 5, tfin + 10, 1000)
 
@@ -219,13 +217,13 @@ try:
             return distancia_minima**2
 
         from scipy.optimize import minimize
-
+        
         # Pendiente inicial aproximada
         m_guess = (H_star_func(tfin) - H_start) / (tfin - t_start)
         res_m = minimize(objetivo_tangencia, x0=[m_guess], bounds=[(0.01, None)], method='L-BFGS-B')
-
+        
         m_tangente = res_m.x[0]
-
+        
         # 2. Identificamos dónde ocurre esa tangencia matemática
         h_op_tangente = H_start + m_tangente * (t_rango_check - t_start)
         h_eq_check = H_star_func(t_rango_check)
@@ -256,13 +254,13 @@ try:
         #col_a, col_b, col_c = st.columns(3)
         #col_a.metric("Pendiente Máx (m)", f"{m_max_global:.3f}")
         #col_b.metric("Temp. Pinch", f"{t_pinch_global:.2f} {temp_unit}")
-        #col_c.metric("Gs Mínimo", f"{Gs_min:.1f} {Gs_unit}")
+        #col_c.metric("Gs Mínimo", f"{Gs_min:.1f} kg/h·m²")
 
     except Exception as e:
         st.error(f"Error en la optimización: {e}")
         m_max_global = (H_star_func(tfin) - Hini) / (tfin - tG1)
         Gs_min = (L * Cp_default) / m_max_global
-
+  
     # ==================== MÉTODO DE MICKLEY ======================
     DH = (Hfin - Hini) / 20
 
@@ -349,12 +347,12 @@ try:
                     t_next = tG1
                 Y_next = calcular_Y(H_next, t_next, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor)
 
-            H_air.append(H_next)
-            t_air.append(t_next)
-            Y_air.append(Y_next)
-            t_op.append(t_op_next)
-            H_op.append(H_next)
-            H_star.append(H_star_next)
+                H_air.append(H_next)
+                t_air.append(t_next)
+                Y_air.append(Y_next)
+                t_op.append(t_op_next)
+                H_op.append(H_next)
+                H_star.append(H_star_next)
             break
 
         H_air.append(H_next)
@@ -403,9 +401,9 @@ try:
     Z_total = HtoG * NtoG
     Lrep = Gs * (Y_air[-1] - Y1)
 
-    # ==================== SECCIÓN DE RESULTADOS UNIFICADA Y COMPACTA ====================
+# ==================== SECCIÓN DE RESULTADOS UNIFICADA Y COMPACTA ====================
     st.markdown("### 📊 Resultados")
-
+    
     # --- PARTE 1: Puntos de Operación ---
     st.markdown("##### 🌡️ Condiciones en los extremos de la torre")
     col_ext1, col_ext2 = st.columns(2)
@@ -433,7 +431,7 @@ try:
         st.markdown("##### Flujo mínimo de aire")
         st.write(f"📉**Pendiente Máxima:** {m_max_global:.3f}")
         #st.write(f"📍 **Temp. Pinch:** {t_pinch_global:.2f} {temp_unit}")
-        st.write(f"🌬️**Gs Mínimo:** {Gs_min:.1f} {Gs_unit}")
+        st.write(f"🌬️**Gs Mínimo:** {Gs_min:.1f} kg/h·m²")
         #estado_txt = "Interno" if t_pinch_global < tfin else "En Cabeza"
         #st.write(f"📌 **Tipo de Pinch:** {estado_txt}")
 
@@ -443,8 +441,8 @@ try:
         st.write(f"🔢**NtoG:** {NtoG:.2f}")
         st.write(f"📏**Altura del relleno (Z):** {Z_total:.2f} {length_unit}")
         porcentaje_evap = (Lrep/L)*100
-
-        st.write(f"💧 **Agua de reposición (Lrep):** {Lrep:.2f} {flow_unit} ({porcentaje_evap:.2f}%)")
+    
+    st.write(f"💧 **Agua de reposición (Lrep):** {Lrep:.2f} {flow_unit} ({porcentaje_evap:.2f}%)")
 
     st.markdown("---")
     # ==================== GRÁFICO FINAL ====================
@@ -459,8 +457,8 @@ try:
 
     # Línea tangente del pinch (RECTA ROJA)
     Hfin_min = Hini + m_max_global * (tfin - tG1)
-    ax.plot([tini, t_pinch_global],
-            [Hini, H_pinch_global],
+    ax.plot([tini, t_pinch_global], 
+            [Hini, H_pinch_global], 
             'r--', linewidth=3, label='Recta tangente (Gs_min)', alpha=0.8)
     ax.plot(t_pinch_global, H_pinch_global, 'ro', markersize=12, label=f'Pinch ({t_pinch_global:.1f}{temp_unit})')
 
@@ -488,27 +486,27 @@ try:
 
 except Exception as e:
     st.error(f"Ha ocurrido un error en los cálculos. Por favor, revise los datos de entrada. Detalle del error: {e}")
-
-# ==================== SECCIÓN DE FUNDAMENTOS Y METODOLOGÍA ====================
+    
+    # ==================== SECCIÓN DE FUNDAMENTOS Y METODOLOGÍA ====================
 
 with st.expander("📚 Ver mas información"):
-
+   
     st.markdown("### 📋 Condiciones y restricciones del modelo")
     st.info("""
-    1. **Estado Estacionario**
-    2. **Operación Adiabática**
-    3. **Resistencia Controlante en la fase gas**
-    4. **L/G Constante**
-    5. **Calor Específico del agua ($C_{pw}$) constante**
-    6. **Equilibrio en la interfase**
+    1. **Estado Estacionario** 
+    2. **Operación Adiabática** 
+    3. **Resistencia Controlante en la fase gas** 
+    4. **L/G Constante** 
+    5. **Calor Específico del agua ($C_{pw}$) constante** 
+    6. **Equilibrio en la interfase** 
     """)
 
     st.markdown("---")
     st.markdown("### 🛠️ Metodología de Cálculo")
-
+    
     st.markdown("#### 1. Flujo Mínimo de Aire ($G_{s,min}$)")
     st.write("""
-    Se determina mediante la **Pendiente Máxima ($m_{max}$)** de la Línea de Operación.
+    Se determina mediante la **Pendiente Máxima ($m_{max}$)** de la Línea de Operación. 
     El algoritmo busca la tangencia entre la recta que nace en $(T_{w,out}, H_{in})$ y la curva de equilibrio.
     - Si la tangencia es interna, se identifica el **Punto de Pinch**.
     - Si no hay tangencia interna, el límite se establece en la cabeza de la torre ($T_{w,in}$).
@@ -523,12 +521,12 @@ with st.expander("📚 Ver mas información"):
 
     st.markdown("#### 3. Altura del relleno Z")
     st.write("""
-    **Número de Unidades de Transferencia ($N_{toG}$):**
+    **Número de Unidades de Transferencia ($N_{toG}$):** 
     """)
     st.latex(r"N_{toG} = \int_{H_{in}}^{H_{out}} \frac{dH}{H^* - H}")
-
+    
     st.write("""
-    **Altura de la Unidad de Transferencia ($H_{toG}$):**
+    **Altura de la Unidad de Transferencia ($H_{toG}$):** 
     """)
     st.latex(r"H_{toG} = \frac{G_s}{K_y a}")
 
@@ -544,21 +542,21 @@ with st.expander("📚 Ver mas información"):
     st.markdown("### 📚 Bibliografía y recursos")
 
     st.markdown("El desarrollo del simulador se realizó en lenguaje Python 3.11 (Van Rossum & Drake, 2025), utilizando la librería Streamlit para la interfaz de usuario. El procesamiento numérico y la resolución de las ecuaciones de balance de entalpía se apoyaron en las librerías NumPy y SciPy, utilizando específicamente algoritmos de resolución no lineal (fsolve) e interpolación spline para la modelización de las curvas de equilibrio psicrométrico.")
-
+    
     st.markdown("""
-    * Treybal, R. E. (1980).Mass-Transfer Operations (3rd ed.). McGraw-Hill Education.
+    * Treybal, R. E. (1980).Mass-Transfer Operations (3rd ed.). McGraw-Hill Education. 
     * Foust, A. S., Wenzel, L. A., Clump, C. W., Maus, L., & Andersen, L. B. (1980).Principles of Unit Operations (2nd ed.). John Wiley & Sons.
     * Streamlit Inc. (2025). Streamlit (Version 1.x) [Software]. https://streamlit.io
     * Harris, C.R., Millman, K.J., van der Walt, S.J. et al. Array programming with NumPy. Nature 585, 357–362 (2020). https://doi.org/10.1038/s41586-020-2649-2
     """)
-
-    st.markdown("### 🎓 ")
-    st.write("**Asignatura:** Operaciones Unitarias 3 - Ingeniería Química")
-    st.write("**Institución:** Facultad de Ingeniería y Ciencias Agropecuarias (FICA) - Universidad Nacional de San Luis (UNSL).")
-    st.write("**Cita sugerida (APA):**")
-    st.markdown("Miró Erdmann, S. M. (2025). Simulador de Torres de Enfriamiento(v1.0) [Software]. Villa Mercedes, San Luis: FICA-UNSL._")
-    st.write("Este software es un recurso de acceso abierto para fines académicos y de investigación en el marco de la Universidad Nacional de San Luis.")
-    st.caption("Final del reporte de simulación - 2025")
+    
+st.markdown("### 🎓 ")
+st.write("**Asignatura:** Operaciones Unitarias 3 - Ingeniería Química")
+st.write("**Institución:** Facultad de Ingeniería y Ciencias Agropecuarias (FICA) - Universidad Nacional de San Luis (UNSL).")
+st.write("**Cita sugerida (APA):**")
+st.markdown("Miró Erdmann, S. M. (2025). Simulador de Torres de Enfriamiento(v1.0) [Software]. Villa Mercedes, San Luis: FICA-UNSL._")
+st.write("Este software es un recurso de acceso abierto para fines académicos y de investigación en el marco de la Universidad Nacional de San Luis.")
+st.caption("Final del reporte de simulación - 2025")
 
 # Línea final fuera del bloque para cerrar la interfaz
 st.markdown("---")
