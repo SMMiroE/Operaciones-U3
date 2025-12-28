@@ -33,12 +33,12 @@ if opcion_unidades == 'Sistema Inglés':
     length_unit = "ft"
     h_temp_ref = 32
     h_latent_ref = 1075.8
-    h_cp_air_dry = 0.24
-    h_cp_vapor = 0.45
+    h_cp_air_dry = 0.242
+    h_cp_vapor = 0.48
     kya_unit = "lb/(h ft² DY)"  # Especificación de unidades de KYa
     cp_unit = "BTU/(lb agua °F)"  # Especificación de unidades de Cp
     Y_unit = "lb agua/lb aire seco"  # Especificación de unidades de Y
-    psychrometric_constant = 0.000367  # psi^-1 (para presión en psi)
+    psychrometric_constant = 0.00043  # psi/F (para presión en psi)
     Gs_unit = "lb aire seco/(h ft²)"
 else:  # Sistema Internacional
     teq = np.array([0, 10, 20, 30, 40, 50, 60])  # °C
@@ -116,7 +116,7 @@ st.sidebar.header('Datos del Problema')
 
 P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f")
 L = st.sidebar.number_input(f'Flujo de agua (L, {flow_unit})', value=2200.0, format="%.2f")
-G = st.sidebar.number_input(f'Flujo de aire (G, {flow_unit})', value=2000.0, format="%.2f")
+G = st.sidebar.number_input(f'Flujo de aire (G, {flow_unit})', value=800.0, format="%.2f")
 tfin = st.sidebar.number_input(f'Temperatura de entrada del agua (tfin, {temp_unit})', value=105.0, format="%.2f")
 tini = st.sidebar.number_input(f'Temperatura de salida del agua (tini, {temp_unit})', value=85.0, format="%.2f")
 
