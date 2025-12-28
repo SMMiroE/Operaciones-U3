@@ -115,7 +115,6 @@ st.sidebar.header('Parámetros del Problema')
 
 P = st.sidebar.number_input('Presión de operación (P, atm)', value=1.0, format="%.2f")
 L = st.sidebar.number_input(f'Flujo de agua (L, {flow_unit})', value=2200.0, format="%.2f")
-
 Lrep = Gs * (Y_air[-1] - Y1)
 
 # ==================== SECCIÓN DE RESULTADOS UNIFICADA Y COMPACTA ====================
