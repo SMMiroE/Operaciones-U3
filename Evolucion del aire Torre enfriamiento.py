@@ -433,6 +433,16 @@ try:
         st.write(f"📉**Pendiente Máxima:** {m_max_global:.3f}")
         #st.write(f"📍 **Temp. Pinch:** {t_pinch_global:.2f} {temp_unit}")
         st.write(f"🌬️**Gs Mínimo:** {Gs_min:.1f} {Gs_unit}")
+        # 🔍 === AGREGAR DEBUG AQUÍ EXACTAMENTE ===
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🔍 DEBUG - Verificar Unidades")
+st.sidebar.write(f"**✅ Opción seleccionada:** {opcion_unidades}")
+st.sidebar.write(f"**📏 Gs_unit usado:** '{Gs_unit}'")
+st.sidebar.write(f"**🔢 Gs_min calculado:** {Gs_min:.1f}")
+st.sidebar.write(f"**💧 L ingresado:** {L:.1f}")
+st.sidebar.write(f"**🔥 Cp_default:** {Cp_default}")
+st.sidebar.write(f"**📐 flow_unit:** '{flow_unit}'")
+# === FIN DEBUG ===
         #estado_txt = "Interno" if t_pinch_global < tfin else "En Cabeza"
         #st.write(f"📌 **Tipo de Pinch:** {estado_txt}")
 
