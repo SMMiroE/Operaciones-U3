@@ -486,8 +486,10 @@ try:
 
 except Exception as e:
     st.error(f"Ha ocurrido un error en los cálculos. Por favor, revise los datos de entrada. Detalle del error: {e}")
+    
     # ==================== SECCIÓN DE FUNDAMENTOS Y METODOLOGÍA ====================
-with st.expander("📚 Ver Condiciones de operacion, restricciones y metodología de cálculo"):
+
+with st.expander("📚 Mas informacion"):
    
     st.markdown("### 📋 Condiciones y restricciones del modelo")
     st.info("""
