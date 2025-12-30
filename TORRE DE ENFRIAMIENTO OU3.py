@@ -413,8 +413,8 @@ try:
         st.markdown("**Cabeza**")
         st.write(f"🌡️ **Temperatura del agua:** {tfin:.2f} {temp_unit}")
         st.write(f"🌡️ **Temperatura del aire:** {t_air[-1]:.2f} {temp_unit}")
-        st.write(f"💧 **Humedad del aire:** {Y_air[-1]:.2f} {Y_unit}")
-        st.write(f"🔥 **Entalpía del aire:** {Hfin:.2f} {enthalpy_unit}")
+        st.write(f"💧 **Humedad del aire:** {Y_air[-1]:.5f} {Y_unit}")
+        st.write(f"🔥 **Entalpía del aire:** {H_air[-1]:.2f} {enthalpy_unit}")
 
     with col_ext2:
         st.markdown("**Base**")
