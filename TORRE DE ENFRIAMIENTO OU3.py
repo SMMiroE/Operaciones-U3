@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d, splev, splrep  # Import splev and splrep
 from scipy.optimize import fsolve  # Para resolver numéricamente el punto de pellizco
 
 # ==================== CONFIGURACIÓN DE LA PÁGINA (OPCIONAL) ====================
+st.write("DEBUG: El código se actualizó")
 st.set_page_config(
     page_title="Torres de Enfriamiento OU3 FICA-UNSL",
     layout="centered",  # o "wide" para más espacio
