@@ -263,7 +263,7 @@ try:
         Gs_min = (L * Cp_default) / m_max_global
 
     # ==================== MÉTODO DE MICKLEY ======================
-    DH = (Hfin - Hini) / 20
+    DH = (Hfin - Hini) / 50
 
     if DH <= 0:
         st.error("Error: El incremento de entalpía (DH) es cero o negativo. Revise las temperaturas del agua (tini, tfin) y flujos (L, G).")
