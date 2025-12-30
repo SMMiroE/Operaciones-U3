@@ -411,12 +411,28 @@ try:
     st.markdown("##### 🌡️ Condiciones en los extremos de la torre")
     col_ext1, col_ext2 = st.columns(2)
     with col_ext1:
+      # ==================== LÓGICA DE VALIDACIÓN DE SATURACIÓN (CABEZA) ====================
+        H_final_cabeza = H_air[-1]
+        T_cabeza_mickley = t_air[-1]
+
+        # Comparamos la entalpía final con la entalpía de saturación a la temperatura de Mickley
+        if H_final_cabeza > H_star_func(T_cabeza_mickley):
+            # El aire se saturó: buscamos la Temperatura donde H* = H_final_cabeza
+            T_cabeza_final = fsolve(lambda t: H_star_func(t) - H_final_cabeza, T_cabeza_mickley)[0]
+            Y_cabeza_final = calcular_Y(H_final_cabeza, T_cabeza_final, h_temp_ref, h_latent_ref, h_cp_air_dry, h_cp_vapor)
+            status_sat = " ⚠️ (Saturado)"
+        else:
+            # El aire no llegó a saturarse: usamos los valores directos de Mickley
+            T_cabeza_final = T_cabeza_mickley
+            Y_cabeza_final = Y_air[-1]
+            status_sat = ""
+
+        # ==================== REPORTE DE RESULTADOS (CABEZA) ====================
         st.markdown("**Cabeza**")
         st.write(f"🌡️ **Temperatura del agua:** {tfin:.2f} {temp_unit}")
-        st.write(f"🌡️ **Temperatura del aire:** {t_air[-1]:.2f} {temp_unit}")
-        st.write(f"💧 **Humedad del aire:** {Y_air[-1]:.5f} {Y_unit}")
-        st.write(f"🔥 **Entalpía del aire:** {H_air[-1]:.2f} {enthalpy_unit}")
-
+        st.write(f"🌡️ **Temperatura del aire:** {T_cabeza_final:.2f} {temp_unit}{status_sat}")
+        st.write(f"💧 **Humedad del aire:** {Y_cabeza_final:.5f} {Y_unit}")
+        st.write(f"🔥 **Entalpía del aire:** {H_final_cabeza:.2f} {enthalpy_unit}")
     with col_ext2:
         st.markdown("**Base**")
         st.write(f"🌡️ **Temperatura del agua:** {tini:.2f} {temp_unit}")
