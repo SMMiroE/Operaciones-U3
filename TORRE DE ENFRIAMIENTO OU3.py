@@ -370,7 +370,8 @@ try:
     if len(H_air) <= 1:
         st.warning("No se pudo generar la curva de evolución del aire. Revise las temperaturas y flujos de entrada.")
         st.stop()
-t_aire_salida = h_temp_ref + (Hfin - Y_air[-1] * h_latent_ref) / (h_cp_air_dry + Y_air[-1] * h_cp_vapor)
+
+    t_aire_salida = h_temp_ref + (Hfin - Y_air[-1] * h_latent_ref) / (h_cp_air_dry + Y_air[-1] * h_cp_vapor)
     # ==================== CÁLCULO DE NtoG ====================
     n_pasos_integracion = 100
     dt_integracion = (tfin - tini) / n_pasos_integracion
