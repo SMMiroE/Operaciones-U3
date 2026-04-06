@@ -558,7 +558,7 @@ st.markdown("### 🎓 ")
 st.write("**Asignatura:** Operaciones Unitarias 3 - Ingeniería Química")
 st.write("**Institución:** Facultad de Ingeniería y Ciencias Agropecuarias (FICA) - Universidad Nacional de San Luis (UNSL).")
 st.write("**Cita sugerida (APA):**")
-st.markdown("Miró Erdmann, S. M. (2025). Simulador de Torres de Enfriamiento(v1.0) [Software]. Villa Mercedes, San Luis: FICA-UNSL._")
+st.markdown("Miró Erdmann, S. M. (2025). Simulador de Torres de Enfriamiento(v. beta) [Software]. Villa Mercedes, San Luis: FICA-UNSL._")
 st.write("Esta herramienta modela el comportamiento termodinámico del aire y el agua en una torre de enfriamiento, permitiendo visualizar la evolución de las entalpías y temperaturas a lo largo del equipo. Es un recurso de acceso abierto para fines académicos y de investigación en el marco de la Universidad Nacional de San Luis.")
 
 
