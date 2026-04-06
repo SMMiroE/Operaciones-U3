@@ -123,7 +123,7 @@ tini = st.sidebar.number_input(f'Temperatura de salida del agua (tini, {temp_uni
 
 Y1_source_option = st.sidebar.radio(
     "Fuente de Humedad Absoluta (Y1):",
-    ('Ingresar Y1', 'Calcular Y1 a partir de Bulbo Húmedo', 'Calcular Y1 a partir de Humedad Relativa')
+    ('Ingresar Y1 directamente', 'Calcular Y1 a partir de Bulbo Húmedo', 'Calcular Y1 a partir de Humedad Relativa')
 )
 
 Y1 = 0.016  # Valor por defecto inicial
