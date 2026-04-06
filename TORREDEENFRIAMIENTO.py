@@ -498,12 +498,12 @@ with st.expander("📚 Ver mas información"):
 
     st.markdown("### 📋 Condiciones y restricciones del modelo")
     st.info("""
-    1. **Estado Estacionario** 
-    2. **Operación Adiabática** 
-    3. **Resistencia Controlante en la fase gas** 
-    4. **L/G Constante** 
-    5. **Calor Específico del agua ($C_{pw}$) constante** 
-    6. **Equilibrio en la interfase** 
+    1. **El equipo opera en estado estacionario** 
+    2. **La operacion es adiabatica** 
+    3. **La resistencia a la transferencia de calor en la fase liquida es despreciable** 
+    4. **La relacion entre flujos L/G es constante** 
+    5. **El calor específico del agua ($C_{pw}$) puede considerarse constante** 
+    6. **En la interfase se establece el equilibrio** 
     """)
 
     st.markdown("---")
