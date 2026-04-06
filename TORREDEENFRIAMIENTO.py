@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # ==================== TÍTULO DE LA APLICACIÓN ====================
-st.title('🌡️ Simulación de Torres de Enfriamiento OU3 FICA-UNSL ❄️(v. beta)')
+st.title('🌡️ Simulación de Torres de Enfriamiento OU3 FICA-UNSL ❄️      (v. beta)')
 st.write('Esta aplicación calcula la evolución del aire en una torre de enfriamiento y estima sus parámetros de diseño.')
 
 # ==================== DATOS DE EQUILIBRIO (MANTENER FIJOS O PERMITIR SELECCIÓN) ====================
